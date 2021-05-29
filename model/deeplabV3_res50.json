@@ -1,0 +1,567 @@
+{
+  "input_c": 3,
+  "input_h": 640,
+  "input_w": 640,
+  "ENGPath": "D:/deeplabV3/yunsheng/20210422/mv.pg",
+  "weightsDir": "D:/deeplabV3/yunsheng/20210422/wts/",
+  "int8": false,
+  "fp16": true,
+  "div_255": true,
+  "Mean": [ 0.485, 0.456, 0.406 ],
+  "Std": [ 0.229, 0.224, 0.225 ],
+  "inputBlobName": "data",
+  "outputBlobName": "output",
+  "maxBatchsize": 10,
+  "mt": [ 100 ],
+  "outputSize": 409600, //410881
+  "network": [
+    //{
+    //  "layerStyle": "M_S",
+    //  "layerName": "ms",
+    //  "inputName": "data",
+    //  "div255": true,
+    //  "Mean": [ 0.485, 0.456, 0.406 ],
+    //  "Std": [ 0.229, 0.224, 0.225 ]
+    //},
+    {
+      "layerStyle": "cba",
+      "layerName": "conv_0",
+      "inputName": "data",
+      "convFile": "0.0.conv1",
+      "parameter": {
+        "input_c": 3,
+        "output_c": 64,
+        "kernel": [ 7, 7 ],
+        "padding": [ 3, 3 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "0.0.bn1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "pool",
+      "layerName": "maxpool_3",
+      "inputName": "conv_0",
+      "parameter": {
+        "poolType": "kMAX",
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      }
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "conv_4",
+      "inputName": "maxpool_3",
+      "convFile": "0.0.layer1.0.conv1",
+      "parameter": {
+        "input_c": 64,
+        "output_c": 64,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "0.0.layer1.0.bn1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "conv_7",
+      "inputName": "conv_4",
+      "convFile": "0.0.layer1.0.conv2",
+      "parameter": {
+        "input_c": 64,
+        "output_c": 64,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "0.0.layer1.0.bn2",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "conv_10",
+      "inputName": "conv_7",
+      "convFile": "0.0.layer1.0.conv3",
+      "parameter": {
+        "input_c": 64,
+        "output_c": 256,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "0.0.layer1.0.bn3"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "conv_12",
+      "inputName": "maxpool_3",
+      "convFile": "0.0.layer1.0.downsample.0",
+      "parameter": {
+        "input_c": 64,
+        "output_c": 256,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "0.0.layer1.0.downsample.1"
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "Add_14",
+      "inputName": [ "conv_10", "conv_12" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_15",
+      "active_type": "relu",
+      "inputName": "Add_14"
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet1_1",
+      "inputName": "relu_15",
+      "downsample": false,
+      "weightsFile": "0.0.layer1.1",
+      "parameter": {
+        "input_c": 256,
+        "temp_c": 64,
+        "output_c": 256
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet1_2",
+      "inputName": "resnet1_1",
+      "downsample": false,
+
+      "weightsFile": "0.0.layer1.2",
+      "parameter": {
+        "input_c": 256,
+        "temp_c": 64,
+        "output_c": 256
+      }
+    }, //resnet1_end
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet2_0",
+      "inputName": "resnet1_2",
+      "downsample": true,
+      "weightsFile": "0.0.layer2.0",
+      "parameter": {
+        "input_c": 256,
+        "temp_c": 128,
+        "output_c": 512
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet2_1",
+      "inputName": "resnet2_0",
+      "downsample": false,
+      "weightsFile": "0.0.layer2.1",
+      "parameter": {
+        "input_c": 512,
+        "temp_c": 128,
+        "output_c": 512
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet2_2",
+      "inputName": "resnet2_1",
+      "downsample": false,
+      "weightsFile": "0.0.layer2.2",
+      "parameter": {
+        "input_c": 512,
+        "temp_c": 128,
+        "output_c": 512
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet2_3",
+      "inputName": "resnet2_2",
+      "downsample": false,
+
+      "weightsFile": "0.0.layer2.3",
+      "parameter": {
+        "input_c": 512,
+        "temp_c": 128,
+        "output_c": 512
+      }
+    }, //resnet2_end
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet3_0",
+      "inputName": "resnet2_3",
+      "downsample": true,
+      "weightsFile": "0.0.layer3.0",
+      "parameter": {
+        "input_c": 512,
+        "temp_c": 256,
+        "output_c": 1024
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet3_1",
+      "inputName": "resnet3_0",
+      "downsample": false,
+      "weightsFile": "0.0.layer3.1",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 256,
+        "output_c": 1024
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet3_2",
+      "inputName": "resnet3_1",
+      "downsample": false,
+      "weightsFile": "0.0.layer3.2",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 256,
+        "output_c": 1024
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet3_3",
+      "inputName": "resnet3_2",
+      "downsample": false,
+      "weightsFile": "0.0.layer3.3",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 256,
+        "output_c": 1024
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet3_4",
+      "inputName": "resnet3_3",
+      "downsample": false,
+      "weightsFile": "0.0.layer3.4",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 256,
+        "output_c": 1024
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet3_5",
+      "inputName": "resnet3_4",
+      "downsample": false,
+
+      "weightsFile": "0.0.layer3.5",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 256,
+        "output_c": 1024
+      }
+    }, //resnet3_end
+    {
+      "layerStyle": "resnet",
+      "layerName": "resnet4_0",
+      "inputName": "resnet3_5",
+      "left": [
+        [
+          [ "0.0.layer4.0.conv1", 512, 1, 1, 0, 2 ],
+          [ "0.0.layer4.0.bn1", 1e-5 ],
+          [ "relu" ]
+        ],
+        [
+          [ "0.0.layer4.0.conv2", 512, 3, 1, 2, 2 ],
+          [ "0.0.layer4.0.bn2", 1e-5 ],
+          [ "relu" ]
+        ],
+        [
+          [ "0.0.layer4.0.conv3", 2048, 1, 1, 0, 2 ],
+          [ "0.0.layer4.0.bn3", 1e-5 ],
+          [ "relu" ]
+        ]
+      ],
+      "right": [
+        [
+          [ "0.0.layer4.0.downsample.0", 2048, 1, 1, 0, 2 ],
+          [ "0.0.layer4.0.downsample.1", 1e-5 ],
+          [ "relu" ]
+        ]
+      ],
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "resnet4_1",
+      "inputName": "resnet4_0",
+      "left": [
+        [
+          [ "0.0.layer4.1.conv1", 512, 1, 1, 0 ],
+          [ "0.0.layer4.1.bn1", 1e-5 ],
+          [ "relu" ]
+        ],
+        [
+          [ "0.0.layer4.1.conv2", 512, 3, 1, 4,4],
+          [ "0.0.layer4.1.bn2", 1e-5 ],
+          [ "relu" ]
+        ],
+        [
+          [ "0.0.layer4.1.conv3", 2048, 1, 1, 0 ],
+          [ "0.0.layer4.1.bn3", 1e-5 ],
+          [ "relu" ]
+        ]
+      ],
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "resnet4_2",
+      "inputName": "resnet4_1",
+      "left": [
+        [
+          [ "0.0.layer4.2.conv1", 512, 1, 1, 0 ],
+          [ "0.0.layer4.2.bn1", 1e-5 ],
+          [ "relu" ]
+        ],
+        [
+          [ "0.0.layer4.2.conv2", 512, 3, 1, 8, 8 ],
+          [ "0.0.layer4.2.bn2", 1e-5 ],
+          [ "relu" ]
+        ],
+        [
+          [ "0.0.layer4.2.conv3", 2048, 1, 1, 0 ],
+          [ "0.0.layer4.2.bn3", 1e-5 ],
+          [ "relu" ]
+        ]
+      ],
+      "active_type": "relu"
+    }, //resnet4_end
+    {
+      "layerStyle": "cba",
+      "layerName": "aspp0",
+      "inputName": "resnet4_2",
+
+      "convFile": "0.1.convs.0.0",
+      "parameter": {
+        "input_c": 2048,
+        "output_c": 256,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "0.1.convs.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "aspp1",
+
+      "inputName": "resnet4_2",
+      "convFile": "0.1.convs.1.0",
+      "parameter": {
+        "input_c": 2048,
+        "output_c": 256,
+        "kernel": [ 3, 3 ],
+        "padding": [ 6, 6 ],
+        "stride": [ 1, 1 ],
+        "dilations": [ 6, 6 ]
+      },
+      "bnFile": "0.1.convs.1.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "aspp2",
+
+      "inputName": "resnet4_2",
+      "convFile": "0.1.convs.2.0",
+      "parameter": {
+        "input_c": 2048,
+        "output_c": 256,
+        "kernel": [ 3, 3 ],
+        "padding": [ 12, 12 ],
+        "stride": [ 1, 1 ],
+        "dilations": [ 12, 12 ]
+      },
+      "bnFile": "0.1.convs.2.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "aspp3",
+
+      "inputName": "resnet4_2",
+      "convFile": "0.1.convs.3.0",
+      "parameter": {
+        "input_c": 2048,
+        "output_c": 256,
+        "kernel": [ 3, 3 ],
+        "padding": [ 18, 18 ],
+        "stride": [ 1, 1 ],
+        "dilations": [ 18, 18 ]
+      },
+      "bnFile": "0.1.convs.3.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "reduce",
+      "layerName": "avgPool",
+      "inputName": "resnet4_2",
+      "keepD": true,
+      "axes": 6
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "aspp4",
+      "inputName": "avgPool",
+      "convFile": "0.1.convs.4.1",
+      "parameter": {
+        "input_c": 2048,
+        "output_c": 256,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "0.1.convs.4.2",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "aspp4_up",
+      "inputName": "aspp4",
+      "mode": "bilinear",
+      "grid": [ 40 ]
+    },
+    {
+      "layerStyle": "concat",
+      "layerName": "aspp_cat",
+      "axis": 0,
+      "inputName": [ "aspp0", "aspp1", "aspp2", "aspp3", "aspp4_up" ]
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "cls_aspp",
+      "inputName": "aspp_cat",
+
+      "convFile": "0.1.project.0",
+      "parameter": {
+        "input_c": 1280,
+        "output_c": 256,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "0.1.project.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "cls_aspp_up",
+
+      "inputName": "cls_aspp",
+      "mode": "bilinear",
+      "grid": [ 160 ]
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "res_aspp",
+
+      "inputName": "resnet1_2",
+      "convFile": "1.neck.0.lateral_block.conv",
+      "parameter": {
+        "input_c": 256,
+        "output_c": 48,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "1.neck.0.lateral_block.bn",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "concat",
+      "layerName": "project_cat",
+
+      "axis": 0,
+      "inputName": [ "cls_aspp_up", "res_aspp" ]
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "class_1",
+      "inputName": "project_cat",
+
+      "convFile": "2.block.0.block.0.conv",
+      "parameter": {
+        "input_c": 304,
+        "output_c": 256,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "2.block.0.block.0.bn",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "class_2",
+      "inputName": "class_1",
+
+      "convFile": "2.block.0.block.1.conv",
+      "parameter": {
+        "input_c": 256,
+        "output_c": 256,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "2.block.0.block.1.bn",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "class",
+      "inputName": "class_2",
+      "weightFile": "2.block.1",
+      "biasFile": "2.block.1",
+
+      "parameter": {
+        "input_c": 256,
+        "output_c": 15,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "cls_up",
+      "inputName": "class",
+      "mode": "linear",
+
+      "grid": [ 640 ]
+    },
+    {
+      "layerStyle": "softmax",
+      "layerName": "soft_max",
+      "inputName": "cls_up",
+
+      "axes": 1
+    },
+    {
+      "layerStyle": "topk",
+      "layerName": "top_max",
+      "inputName": "soft_max",
+      "outputName": "output",
+      "TopKOperation": "kMAX",
+      "k": 1,
+      "reduceAxes": 1,
+      "outputIndex": 1
+    }
+  ]
+}
