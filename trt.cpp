@@ -77,8 +77,6 @@ void trt::onnx2trt()
     m_Network = builder->createNetworkV2(1U);
     IBuilderConfig* config = builder->createBuilderConfig();
     auto parser = nvonnxparser::createParser(*m_Network,m_logger);
-    // parse ONNX
-    //cout<<param.onnxPath<<endl;
     if (!parser->parseFromFile((param.onnxPath).c_str(), static_cast<int>(nvinfer1::ILogger::Severity::kINFO))) {
         std::cerr << "ERROR: could not parse the model.\n";
         exit(1);
@@ -377,7 +375,7 @@ ITensor* trt::trt_deconvNet(ITensor* input, string weightFile, string biasFile,
     {
         deconv->setPaddingNd(padding);
     }
-    deconv->setDilationNd(dilations);
+    //deconv->setDilationNd(dilations);
     deconv->setNbGroups(groups);
     assert(deconv);
     weights.clear();
@@ -892,8 +890,6 @@ void trt::trt_fc(Json::Value layer)
     assert(fc!=nullptr);
     fc_weights.clear();
     fc_bias.clear();
-    delete [] grootWt;
-    delete [] racoonWt;
     Layers[layerName] = fc->getOutput(0);
     debug_print(Layers[layerName],layerName+" dim :");
     string outputName = layer["outputName"].asString();

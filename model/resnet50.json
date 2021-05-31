@@ -1,0 +1,320 @@
+{
+  "input_c": 3,
+  "input_h": 256,
+  "input_w": 256,
+  "ENGPath": "H:/myGitHub/tensorrtF/model/resnet50/res50.eng",
+  "weightsDir": "H:/myGitHub/tensorrtF/model/resnet50/wts/",
+  "onnxPath": "H:/myGitHub/tensorrtF/model/resnet50/res50.onnx",
+  "fp16": true,
+  //"int8": true,
+  //"cali_txt": "H:/myGitHub/tensorrtF/model/resnet50/cali.txt",
+  //"cali_table": "H:/myGitHub/tensorrtF/model/resnet50/cali.table",
+  //"div_255": true,
+  //"Mean": [ 0.485, 0.456, 0.406 ],
+  //"Std": [ 0.229, 0.224, 0.225 ],
+  "inputBlobName": "data",
+  "outputBlobName": "output",
+  "maxBatchsize": 10,
+  "outputSize": 1000,
+  "network": [
+    {
+      "layerStyle": "cba",
+      "layerName": "conv_0",
+      "inputName": "data",
+      "convFile": "conv1",
+      "parameter": {
+        "output_c": 64,
+        "kernel": [ 7 ],
+        "padding": [ 3 ],
+        "stride": [ 2 ]
+      },
+      "bnFile": "bn1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "pool",
+      "layerName": "maxpool_3",
+      "inputName": "conv_0",
+      "parameter": {
+        "poolType": "kMAX",
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      }
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "conv_4",
+      "inputName": "maxpool_3",
+      "convFile": "layer1.0.conv1",
+      "parameter": {
+        "output_c": 64,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "layer1.0.bn1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "conv_7",
+      "inputName": "conv_4",
+      "convFile": "layer1.0.conv2",
+      "parameter": {
+        "output_c": 64,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "layer1.0.bn2",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "conv_10",
+      "inputName": "conv_7",
+      "convFile": "layer1.0.conv3",
+      "parameter": {
+        "input_c": 64,
+        "output_c": 256,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "layer1.0.bn3"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "conv_12",
+      "inputName": "maxpool_3",
+      "convFile": "layer1.0.downsample.0",
+      "parameter": {
+        "input_c": 64,
+        "output_c": 256,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "layer1.0.downsample.1"
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "Add_14",
+      "inputName": [ "conv_10", "conv_12" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_15",
+      "active_type": "relu",
+      "inputName": "Add_14"
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet1_1",
+      "inputName": "relu_15",
+      "downsample": false,
+      "weightsFile": "layer1.1",
+      "parameter": {
+        "input_c": 256,
+        "temp_c": 64,
+        "output_c": 256
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet1_2",
+      "inputName": "resnet1_1",
+      "downsample": false,
+
+      "weightsFile": "layer1.2",
+      "parameter": {
+        "input_c": 256,
+        "temp_c": 64,
+        "output_c": 256
+      }
+    }, //resnet1_end
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet2_0",
+      "inputName": "resnet1_2",
+      "downsample": true,
+      "weightsFile": "layer2.0",
+      "parameter": {
+        "input_c": 256,
+        "temp_c": 128,
+        "output_c": 512
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet2_1",
+      "inputName": "resnet2_0",
+      "downsample": false,
+      "weightsFile": "layer2.1",
+      "parameter": {
+        "input_c": 512,
+        "temp_c": 128,
+        "output_c": 512
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet2_2",
+      "inputName": "resnet2_1",
+      "downsample": false,
+      "weightsFile": "layer2.2",
+      "parameter": {
+        "input_c": 512,
+        "temp_c": 128,
+        "output_c": 512
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet2_3",
+      "inputName": "resnet2_2",
+      "downsample": false,
+
+      "weightsFile": "layer2.3",
+      "parameter": {
+        "input_c": 512,
+        "temp_c": 128,
+        "output_c": 512
+      }
+    }, //resnet2_end
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet3_0",
+      "inputName": "resnet2_3",
+      "downsample": true,
+      "weightsFile": "layer3.0",
+      "parameter": {
+        "input_c": 512,
+        "temp_c": 256,
+        "output_c": 1024
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet3_1",
+      "inputName": "resnet3_0",
+      "downsample": false,
+      "weightsFile": "layer3.1",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 256,
+        "output_c": 1024
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet3_2",
+      "inputName": "resnet3_1",
+      "downsample": false,
+      "weightsFile": "layer3.2",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 256,
+        "output_c": 1024
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet3_3",
+      "inputName": "resnet3_2",
+      "downsample": false,
+      "weightsFile": "layer3.3",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 256,
+        "output_c": 1024
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet3_4",
+      "inputName": "resnet3_3",
+      "downsample": false,
+      "weightsFile": "layer3.4",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 256,
+        "output_c": 1024
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet3_5",
+      "inputName": "resnet3_4",
+      "downsample": false,
+
+      "weightsFile": "layer3.5",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 256,
+        "output_c": 1024
+      }
+    }, //resnet3_end
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet4_0",
+      "inputName": "resnet3_5",
+      "downsample": true,
+      "weightsFile": "layer4.0",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 512,
+        "output_c": 2048
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet4_1",
+      "inputName": "resnet4_0",
+      "downsample": false,
+      "weightsFile": "layer4.1",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 512,
+        "output_c": 2048
+      }
+    },
+    {
+      "layerStyle": "resnet3",
+      "layerName": "resnet4_2",
+      "inputName": "resnet4_1",
+      "downsample": false,
+      "weightsFile": "layer4.2",
+      "parameter": {
+        "input_c": 1024,
+        "temp_c": 512,
+        "output_c": 2048
+      }
+    },
+    {
+      "layerStyle": "reduce",
+      "layerName": "avgPool_172",
+      "inputName": "resnet4_2",
+      "type": "kAVG",
+      
+      "axes": 6,
+      "keepD": true
+    },
+    {
+      "layerStyle": "fc",
+      "layerName": "gemm_173",
+      "inputName": "avgPool_172",
+      "outputName": "output",
+      "weightFile": "fc.weight",
+      "biasFile": "fc.bias",
+      "parameter": {
+        "input_c": 2048,
+        "output_c": 1000
+      }
+    }
+
+  ]
+
+}

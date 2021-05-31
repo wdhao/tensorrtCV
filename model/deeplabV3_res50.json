@@ -4,20 +4,19 @@
   "input_w": 640,
   "ENGPath": "D:/deeplabV3/yunsheng/20210422/mv.pg",
   "weightsDir": "D:/deeplabV3/yunsheng/20210422/wts/",
-  "int8": false,
   "fp16": true,
+  "int8": false,
   "div_255": true,
   "Mean": [ 0.485, 0.456, 0.406 ],
   "Std": [ 0.229, 0.224, 0.225 ],
   "inputBlobName": "data",
   "outputBlobName": "output",
   "maxBatchsize": 10,
-  "mt": [ 100 ],
-  "outputSize": 409600, //410881
+  "outputSize": 409600,
   "network": [
     //{
     //  "layerStyle": "M_S",
-    //  "layerName": "ms",
+    //  "layerName": "preInput",
     //  "inputName": "data",
     //  "div255": true,
     //  "Mean": [ 0.485, 0.456, 0.406 ],
@@ -307,7 +306,7 @@
           [ "relu" ]
         ],
         [
-          [ "0.0.layer4.1.conv2", 512, 3, 1, 4,4],
+          [ "0.0.layer4.1.conv2", 512, 3, 1, 4, 4 ],
           [ "0.0.layer4.1.bn2", 1e-5 ],
           [ "relu" ]
         ],
