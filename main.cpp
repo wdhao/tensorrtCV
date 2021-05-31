@@ -20,29 +20,21 @@ void test()
             cout<<endl;
     }
 }
-void testOnnx()
+void resnet(string JsonPath)
 {
-    string jsonPath = "D:/hrnet_ocr/test.json";
-    trt *m_trt = new trt(jsonPath);
-    m_trt->onnx2trt();
-}
-void dpV3PP()
-{
-    string jsonPath = "D:/qt_project/tensorrtF/model/deeplabV3_res50.json";
-    trt *m_trt = new trt(jsonPath);
+    trt *m_trt = new trt(JsonPath);
     m_trt->createENG();
 }
 
-int main()
+int main(int argc ,char** argv)
 {
-    dpV3PP();
-    //test();
-
-//    float *s = new float[2];
-//    s[0] = 1.1;
-//    s[1] = 2.2;
-//    cout<<*(static_cast<const float*>(s)+1)<<endl;
-//    cout<<*(s+1)<<endl;
-    cout << "Hello World!" << endl;
+    string JsonPath = argv[1];
+    trt *m_trt = new trt(JsonPath);
+    m_trt->createENG();
+    int batchsize = 1;
+    m_trt->inference_init(batchsize);
+    float *input = new float[batchsize * m_trt->param.input_c * m_trt->param.input_h * m_trt->param.input_w];
+    float *output = new float[batchsize * m_trt->param.outputSize];
+    m_trt->doInference(input,1,output);
     return 0;
 }
