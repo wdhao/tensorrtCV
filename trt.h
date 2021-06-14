@@ -3,7 +3,7 @@
 
 
 #include <fstream>
-#include "json.h"
+#include <json.h>
 #include <assert.h>
 #include<NvOnnxParser.h>
 #include<NvOnnxConfig.h>
@@ -117,7 +117,14 @@ public:
     void trt_UpSample_plugin(Json::Value layer);
     void trt_groupNorm(Json::Value layer);
     void trt_unary(Json::Value layer);
+    ITensor* convBlock(ITensor* input,int outch,int k,int s,string lname,string acti_type,
+                       float eps=1e-3,float alpha = 0.0);
+    ITensor* bottleneck(ITensor* input, string lname,string acti_type,int c1, int c2, bool shortcut, float e,
+                        float eps=1e-3,float alpha = 0.0);
+    ITensor* SPP();
+    void yolo_C3(Json::Value layer);
     void trt_yolo(Json::Value layer);
+    void yolo_spp(Json::Value layer);
 
 
 

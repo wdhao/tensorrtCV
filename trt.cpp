@@ -38,6 +38,25 @@ trt::trt(const string &jsonPath)
 
     fp.close();
 }
+trt::~trt()
+{
+    if(m_context){
+        m_context->destroy();
+        m_context = nullptr;
+    }
+    if(m_engine){
+        m_engine->destroy();
+        m_engine = nullptr;
+    }
+    if(m_Network){
+        m_Network->destroy();
+        m_Network = nullptr;
+    }
+    for(auto bindings : m_bindings){
+        cudaFree(bindings);
+    }
+    free(m_cudaStream);
+}
 void trt::debug_print(ITensor *input_tensor,const string &head)
 {
     cout << head<< " : ";
@@ -210,8 +229,13 @@ void trt::addLayer(Json::Value layer)
         trt_groupNorm(layer);
     else if(layerStyle == "unary")
         trt_unary(layer);
+    else if (layerStyle == "C3") {
+        yolo_C3(layer);
+    }
     else if(layerStyle == "yolo")
         trt_yolo(layer);
+    else if(layerStyle == "spp")
+        yolo_spp(layer);
     else {
         cout<<"no this layer style : "<<layerStyle<<endl;
         abort();
@@ -1378,6 +1402,7 @@ void trt::trt_focus(Json::Value layer)
     assert(s3);
     ISliceLayer *s4 = m_Network->addSlice(*Layers[inputName], Dims3{0, 1, 1}, Dims3{param.input_c, param.input_h / 2, param.input_w / 2}, Dims3{1, 2, 2});
     assert(s4);
+
     ITensor* inputTensors[] = {s1->getOutput(0), s2->getOutput(0), s3->getOutput(0), s4->getOutput(0)};
     auto cat = m_Network->addConcatenation(inputTensors, 4);
     Layers[layerName] = cat->getOutput(0);
@@ -1652,6 +1677,103 @@ void trt::trt_unary(Json::Value layer)
         Layers[layerName]->setName(outputName.c_str());
         m_Network->markOutput(*Layers[layerName]);
     }
+}
+ITensor* trt::convBlock(ITensor *input, int outch, int k, int s, string lname,string acti_type,
+                        float eps,float alpha)
+{
+    int p = k / 2;
+    ITensor* out = trt_convNet(input,lname + ".conv.weight.wgt","",outch,DimsHW{k,k},DimsHW{s,s},DimsHW{p,p});
+    out = trt_bnNet(out,lname + ".bn", eps);
+    out = trt_activeNet(out,acti_type,alpha);
+    return out;
+}
+ITensor* trt::bottleneck(ITensor *input, string lname, string acti_type, int c1, int c2, bool shortcut, float e,
+                         float eps, float alpha)
+{
+    ITensor* cv1 = convBlock(input,(int)((float)c2 * e),1,1,lname+".cv1",acti_type,eps,alpha);
+    ITensor* cv2 = cv2 = convBlock(cv1, c2, 3, 1, lname + ".cv2",acti_type,eps,alpha);
+    if (shortcut && c1 == c2) {
+        auto ew = trt_eltNet(input,cv2,"kSUM");
+        return ew;
+    }
+    return cv2;
+}
+void trt::yolo_C3(Json::Value layer)
+{
+    string layerName = layer["layerName"].asString();
+    string inputName = layer["inputName"].asString();
+    int c1 = layer["c1"].asInt();
+    int c2 = layer["c2"].asInt();
+    int n = layer["n"].asInt();
+    bool SC = layer["shortCut"].asBool();
+    int g = layer["g"].asInt();
+    float e = layer["e"].asFloat();
+    string lname = layer["lname"].asString();
+    lname = param.weightPath + lname;
+    string acti_type = layer["active_type"].asString();
+    float eps = layer["eps"].asFloat();
+    if(eps == 0.f)
+        eps = 1e-3;
+    float alpha = layer["alpha"].asFloat();
+    if(alpha == 0.f)
+        alpha = 0.1;
+    int c_ = (int)((float)c2 * e);
+    auto cv1 = convBlock(Layers[inputName], c_, 1, 1,lname + ".cv1",acti_type,eps,alpha);
+    auto cv2 = convBlock(Layers[inputName], c_, 1, 1,lname + ".cv2",acti_type,eps,alpha);
+    ITensor *y1 = cv1;
+    for (int i = 0; i < n; i++) {
+        auto b = bottleneck(y1, lname + ".m." + std::to_string(i),acti_type,c_, c_, SC, 1.0,eps,alpha);
+        y1 = b;
+    }
+    ITensor* inputTensors[] = { y1, cv2 };
+    auto cat = m_Network->addConcatenation(inputTensors, 2);
+    auto cv3 = convBlock(cat->getOutput(0), c2, 1, 1,lname + ".cv3",acti_type,eps,alpha);
+    Layers[layerName] = cv3;
+    debug_print(Layers[layerName],layerName +" dims : ");
+    string outputName = layer["outputName"].asString();
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
+}
+void trt::yolo_spp(Json::Value layer)
+{
+    string layerName = layer["layerName"].asString();
+    string inputName = layer["inputName"].asString();
+    Json::Value kernels = layer["kernels"];
+    int c1 = layer["c1"].asInt();
+    int c_ = c1 / 2;
+    int c2 = layer["c2"].asInt();
+    string lname = layer["lname"].asString();
+    lname  = param.weightPath + lname;
+    string acti_type = layer["active_type"].asString();
+    float eps = layer["eps"].asFloat();
+    if(eps == 0.f)
+        eps = 1e-3;
+    float alpha = layer["alpha"].asFloat();
+    if(alpha == 0.f)
+        alpha = 0.1;
+    ITensor** spp = new ITensor*[4];
+    ITensor* cv1 = convBlock(Layers[inputName],c_,1,1,lname+".cv1",acti_type,eps,alpha);
+    spp[0] = cv1;
+    for(int i = 1;i< 4;i++)
+    {
+        int k = kernels[i-1].asInt();
+        spp[i] = trt_poolNet(cv1,"kMAX",DimsHW{k,k},DimsHW{1,1},DimsHW{k/2,k/2});
+    }
+    ITensor* cat = m_Network->addConcatenation(spp,4)->getOutput(0);
+    ITensor* cv2 = convBlock(cat,c2,1,1,lname+".cv2",acti_type,eps,alpha);
+    debug_print(cv2,"spp");
+    Layers[layerName] = cv2;
+    debug_print(Layers[layerName],layerName +" dims : ");
+    string outputName = layer["outputName"].asString();
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
+
 }
 void trt::trt_yolo(Json::Value layer)
 {

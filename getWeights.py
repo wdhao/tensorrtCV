@@ -17,7 +17,8 @@ import struct
 
 
 
-path = "H:/myGitHub/tensorrtF/model/resnet50/"
+
+path = "H:/myGitHub/tensorrtF/model/yolov5/"
 Path = os.path.join(path, "wts")
 if not os.path.isdir(Path):
     os.makedirs(Path)
@@ -49,8 +50,10 @@ def getweights(model_path):
                             
                     
 if __name__ == '__main__':
-    
-    getweights(path + "res50.pth")
+
+    model = torch.load(path+'yolov5s.pt')['model'].float() 
+    torch.save(model.state_dict(),path+'yolov5s.pth')
+    getweights(path + "yolov5s.pth")
     #model = torchvision.models.resnet50()
     #model.eval()
     #torch.save(model.state_dict(),r"H:\myGitHub\tensorrtF\model\resnet50\res50.pth")
