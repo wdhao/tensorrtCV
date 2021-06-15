@@ -39,7 +39,7 @@ void mblobFromImages(cv::InputArrayOfArrays images_, cv::OutputArray blob_,
         }
 
         images[i] -= mean;
-        images[i] /= std_num;
+        cv::divide(images[i], std_num, images[i]);
     }
 
     size_t i, nimages = images.size();
