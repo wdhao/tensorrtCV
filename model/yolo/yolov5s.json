@@ -338,7 +338,7 @@
       "layerName": "YOLO",
       "outputName": "prob",
       "inputName": [ "det_0", "det_1", "det_2" ],
-      "anchor_grid": "model.24.anchors",
+      "anchor_grid": "model.24.anchor_grid",
       "cls_num": 80,
       "max_box": 300   //outputSize = 300 * (4 + 1 + 1) +1 =1801  ,4:(x1,y1,x2,y2); 1(conf) ;1 (cls)
     }
