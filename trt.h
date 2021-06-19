@@ -3,7 +3,7 @@
 
 
 #include <fstream>
-#include "json.h"
+#include <json.h>
 #include <assert.h>
 #include<NvOnnxParser.h>
 #include<NvOnnxConfig.h>
@@ -91,6 +91,7 @@ public:
     ITensor* trt_poolNet(ITensor* input,string pooltype,DimsHW kernel,DimsHW stride,DimsHW padding);
     ITensor* trt_eltNet(ITensor* input1,ITensor* input2,string elt_Type);
     ITensor* trt_resnetCBA(Json::Value temp,ITensor* input);
+    void trt_preInput(Json::Value layer);
     void trt_conv(Json::Value layer);
     void trt_deconv(Json::Value layer);
     void trt_padding(Json::Value layer);

@@ -183,8 +183,8 @@ void trt::addLayer(Json::Value layer)
         trt_deconv(layer);
     else if(layerStyle == "padding")
         trt_padding(layer);
-//    else if(layerStyle == "M_S")
-//        m_trtLayer->trt_mean_std(layer);
+    else if(layerStyle == "preInput")
+        trt_preInput(layer);
     else if (layerStyle == "focus")
         trt_focus(layer);
     else if (layerStyle == "bn")
@@ -614,6 +614,59 @@ ITensor* trt::trt_resnetCBA(Json::Value temp,ITensor* input)
         cout<<"Error! temp size just support 2 or 3,please check it!"<<endl;
         assert(0);
     }
+}
+void trt::trt_preInput(Json::Value layer)
+{
+    string layerName = layer["layerName"].asString();
+    string inputName = layer["inputName"].asString();
+    bool div_255 = layer["div_255"].asBool();
+    Json::Value Mean = layer["Mean"];
+    Json::Value Std = layer["Std"];
+    int c = Layers[inputName]->getDimensions().d[0];
+    Dims3 dimensions{c,1,1};
+    ITensor* temp = Layers[inputName];
+    if(div_255)
+    {
+        Weights Div_255{DataType::kFLOAT,nullptr,c};
+        float *div = new float[c];
+        for(int i = 0; i < c; i++){
+            div[i] = 255.0;
+        }
+        Div_255.values = div;
+        auto Div = m_Network->addConstant(dimensions,Div_255);
+        temp = trt_eltNet(temp,Div->getOutput(0),"kDIV");
+    }
+    if(Mean.size() == c)
+    {
+        Weights mean{DataType::kFLOAT,nullptr,c};
+        float *M = new float[c];
+        for(int i = 0; i < c; i++){
+            M[i] = Mean[i].asFloat();
+        }
+        mean.values = M;
+        auto m = m_Network->addConstant(dimensions,mean);
+        temp = trt_eltNet(temp,m->getOutput(0),"kSUB");
+    }
+    if(Std.size() == c)
+    {
+        Weights std{DataType::kFLOAT,nullptr,c};
+        float *S = new float[c];
+        for(int i = 0; i < c; i++){
+            S[i] = Std[i].asFloat();
+        }
+        std.values = S;
+        auto s = m_Network->addConstant(dimensions,std);
+        temp = trt_eltNet(temp,s->getOutput(0),"kDIV");
+    }
+    Layers[layerName] = temp;
+    debug_print(Layers[layerName],layerName +" dims : ");
+    string outputName = layer["outputName"].asString();
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
+
 }
 void trt::trt_conv(Json::Value layer)
 {
@@ -1278,7 +1331,10 @@ void trt::trt_convBnActive(Json::Value layer)
     string bnFile = layer["bnFile"].asString();
     if (bnFile.size() > 0){
         bnFile = param.weightPath + bnFile;
-        output = trt_bnNet(output,bnFile);
+        float eps = 1.0e-5;
+        if(layer["eps"].asFloat() > 0.f)
+            eps = layer["eps"].asFloat();
+        output = trt_bnNet(output,bnFile,eps);
     }
     string active_type = layer["active_type"].asString();
     if (active_type.size() > 0){
@@ -1394,19 +1450,26 @@ void trt::trt_focus(Json::Value layer)
 {
     string layerName = layer["layerName"].asString();
     string inputName = layer["inputName"].asString();
-    ISliceLayer *s1 = m_Network->addSlice(*Layers[inputName], Dims3{0, 0, 0}, Dims3{param.input_c, param.input_h / 2, param.input_w / 2}, Dims3{1, 2, 2});
+    auto s1 = m_Network->addSlice(*Layers[inputName], Dims3{0, 0, 0}, Dims3{param.input_c, param.input_h / 2, param.input_w / 2}, Dims3{1, 2, 2});
     assert(s1);
-    ISliceLayer *s2 = m_Network->addSlice(*Layers[inputName], Dims3{0, 1, 0}, Dims3{param.input_c, param.input_h / 2, param.input_w / 2}, Dims3{1, 2, 2});
+    auto s2 = m_Network->addSlice(*Layers[inputName], Dims3{0, 1, 0}, Dims3{param.input_c, param.input_h / 2, param.input_w / 2}, Dims3{1, 2, 2});
     assert(s2);
-    ISliceLayer *s3 = m_Network->addSlice(*Layers[inputName], Dims3{0, 0, 1}, Dims3{param.input_c, param.input_h / 2, param.input_w / 2}, Dims3{1, 2, 2});
+    auto s3 = m_Network->addSlice(*Layers[inputName], Dims3{0, 0, 1}, Dims3{param.input_c, param.input_h / 2, param.input_w / 2}, Dims3{1, 2, 2});
     assert(s3);
-    ISliceLayer *s4 = m_Network->addSlice(*Layers[inputName], Dims3{0, 1, 1}, Dims3{param.input_c, param.input_h / 2, param.input_w / 2}, Dims3{1, 2, 2});
+    auto s4 = m_Network->addSlice(*Layers[inputName], Dims3{0, 1, 1}, Dims3{param.input_c, param.input_h / 2, param.input_w / 2}, Dims3{1, 2, 2});
     assert(s4);
 
     ITensor* inputTensors[] = {s1->getOutput(0), s2->getOutput(0), s3->getOutput(0), s4->getOutput(0)};
     auto cat = m_Network->addConcatenation(inputTensors, 4);
+    cat->setAxis(0);
     Layers[layerName] = cat->getOutput(0);
     debug_print(Layers[layerName],layerName +" dims : ");
+    string outputName = layer["outputName"].asString();
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 
 }
 void trt::trt_UpSample(Json::Value layer)
@@ -1764,7 +1827,7 @@ void trt::yolo_spp(Json::Value layer)
     }
     ITensor* cat = m_Network->addConcatenation(spp,4)->getOutput(0);
     ITensor* cv2 = convBlock(cat,c2,1,1,lname+".cv2",acti_type,eps,alpha);
-    debug_print(cv2,"spp");
+    //debug_print(cv2,"spp");
     Layers[layerName] = cv2;
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
@@ -1781,6 +1844,11 @@ void trt::trt_yolo(Json::Value layer)
     Json::Value inputs = layer["inputName"];
     string anchor_grid = layer["anchor_grid"].asString();
     vector<float> anchors_yolo = loadWeights(param.weightPath + anchor_grid + ".wgt");
+//    for(int i = 0 ;i < anchors_yolo.size();i++)
+//    {
+//        cout<<anchors_yolo[i]<< "  ,";
+//    }
+//    cout<<endl;
     auto creator = getPluginRegistry()->getPluginCreator("YoloLayer_TRT", "1");
     PluginField pluginMultidata[4];
     int NetData[4];
@@ -1789,7 +1857,7 @@ void trt::trt_yolo(Json::Value layer)
     NetData[2] = param.input_h;
     NetData[3] = layer["max_box"].asInt();
     pluginMultidata[0].data = NetData;
-    pluginMultidata[0].length = 3;
+    pluginMultidata[0].length = 4;
     pluginMultidata[0].name = "netdata";
     pluginMultidata[0].type = PluginFieldType::kFLOAT32;
     int scale[3] = { 8, 16, 32 };
@@ -1813,7 +1881,7 @@ void trt::trt_yolo(Json::Value layer)
     pluginData.nbFields = 4;
     pluginData.fields = pluginMultidata;
     IPluginV2 *pluginObj = creator->createPlugin(layerName.c_str(), &pluginData);
-    ITensor* inputTensors_yolo[] = { Layers[inputs[0].asString()], Layers[inputs[1].asString()], Layers[inputs[2].asString()] };
+    ITensor* inputTensors_yolo[] = { Layers[inputs[2].asString()], Layers[inputs[1].asString()], Layers[inputs[0].asString()] };
     auto yolo = m_Network->addPluginV2(inputTensors_yolo, 3, *pluginObj);
     Layers[layerName] = yolo->getOutput(0);
     debug_print(Layers[layerName],layerName +" dims : ");

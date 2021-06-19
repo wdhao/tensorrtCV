@@ -13,14 +13,22 @@
   "maxBatchsize": 10,
   "network": [
     {
+      "layerStyle": "preInput",
+      "layerName": "m_s",
+      "inputName": "data",
+      "div_255": true
+    },
+    {
       "layerStyle": "focus",
       "layerName": "focus_0",
-      "inputName": "data"
+      
+      "inputName": "m_s"
     },
     {
       "layerStyle": "cba",
       "layerName": "conv_1",
       "inputName": "focus_0",
+      
       "convFile": "model.0.conv.conv",
       "parameter": {
         "output_c": 32,
@@ -29,12 +37,14 @@
         "stride": [ 1, 1 ]
       },
       "bnFile": "model.0.conv.bn",
-      "active_type": "silu"
+      "active_type": "silu",
+      "eps": 1e-3
     },
     {
       "layerStyle": "cba",
       "layerName": "conv_2",
       "inputName": "conv_1",
+      
       "convFile": "model.1.conv",
       "parameter": {
         "output_c": 64,
@@ -43,12 +53,14 @@
         "stride": [ 2, 2 ]
       },
       "bnFile": "model.1.bn",
-      "active_type": "silu"
+      "active_type": "silu",
+      "eps": 1e-3
     },
     {
       "layerStyle": "C3",
       "layerName": "bottleneck_CSP2",
       "inputName": "conv_2",
+      
       "c1": 64,
       "c2": 64,
       "n": 1,
@@ -71,7 +83,8 @@
         "stride": [ 2, 2 ]
       },
       "bnFile": "model.3.bn",
-      "active_type": "silu"
+      "active_type": "silu",
+      "eps": 1e-3
     },
     {
       "layerStyle": "C3",
@@ -99,7 +112,8 @@
         "stride": [ 2, 2 ]
       },
       "bnFile": "model.5.bn",
-      "active_type": "silu"
+      "active_type": "silu",
+      "eps": 1e-3
     },
     {
       "layerStyle": "C3",
@@ -127,17 +141,19 @@
         "stride": [ 2, 2 ]
       },
       "bnFile": "model.7.bn",
-      "active_type": "silu"
+      "active_type": "silu",
+      "eps": 1e-3
     },
     {
       "layerStyle": "spp",
       "layerName": "spp_8",
       "inputName": "conv_7",
+      
       "lname": "model.8",
       "c1": 512,
       "c2": 512,
       "kernels": [ 5, 9, 13 ],
-
+      "eps": 1e-3,
       "active_type": "silu"
     },
     {
@@ -158,6 +174,7 @@
       "layerStyle": "cba",
       "layerName": "conv_10",
       "inputName": "bottleneck_CSP9",
+      
       "convFile": "model.10.conv",
       "parameter": {
         "output_c": 256,
@@ -166,11 +183,14 @@
         "stride": [ 1 ]
       },
       "bnFile": "model.10.bn",
-      "active_type": "silu"
+      "active_type": "silu",
+      "eps": 1e-3
     },
     {
       "layerStyle": "upsample",
       "layerName": "upsample_11",
+      
+      "mode": "nearest",
       "inputName": "conv_10"
     },
     {
@@ -205,11 +225,13 @@
         "stride": [ 1 ]
       },
       "bnFile": "model.14.bn",
-      "active_type": "silu"
+      "active_type": "silu",
+      "eps": 1e-3
     },
     {
       "layerStyle": "upsample",
       "layerName": "upsample_15",
+      "mode": "nearest",
       "inputName": "conv_14"
     },
     {
@@ -244,7 +266,8 @@
         "stride": [ 2 ]
       },
       "bnFile": "model.18.bn",
-      "active_type": "silu"
+      "active_type": "silu",
+      "eps": 1e-3
     },
     {
       "layerStyle": "concat",
@@ -278,7 +301,8 @@
         "stride": [ 2 ]
       },
       "bnFile": "model.21.bn",
-      "active_type": "silu"
+      "active_type": "silu",
+      "eps": 1e-3
     },
     {
       "layerStyle": "concat",
@@ -305,7 +329,8 @@
       "layerName": "det_0",
       "inputName": "bottleneck_CSP17",
       "weightFile": "model.24.m.0",
-      "biasFile": "model.24.m.1",
+      "biasFile": "model.24.m.0",
+      
       "parameter": {
         "output_c": 255, // output_c = 3 * (cls_num + 5)
         "kernel": [ 1 ]
@@ -317,6 +342,7 @@
       "inputName": "bottleneck_CSP20",
       "weightFile": "model.24.m.1",
       "biasFile": "model.24.m.1",
+      
       "parameter": {
         "output_c": 255, // output_c = 3 * (cls_num + 5)
         "kernel": [ 1 ]
@@ -328,6 +354,7 @@
       "inputName": "bottleneck_CSP23",
       "weightFile": "model.24.m.2",
       "biasFile": "model.24.m.2",
+      
       "parameter": {
         "output_c": 255, // output_c = 3 * (cls_num + 5)
         "kernel": [ 1 ]
@@ -338,9 +365,9 @@
       "layerName": "YOLO",
       "outputName": "prob",
       "inputName": [ "det_0", "det_1", "det_2" ],
-      "anchor_grid": "model.24.anchors",
+      "anchor_grid": "model.24.anchor_grid",
       "cls_num": 80,
-      "max_box": 300   //outputSize = 300 * (4 + 1 + 1) +1 =1801  ,4:(x1,y1,x2,y2); 1(conf) ;1 (cls)
+      "max_box": 300 //outputSize = 300 * (4 + 1 + 1) +1 =1801  ,4:(x1,y1,x2,y2); 1(conf) ;1 (cls)
     }
   ]
 
