@@ -2,15 +2,18 @@
   "input_c": 3,
   "input_h": 640,
   "input_w": 640,
-  "ENGPath": "H:/myGitHub/tensorrtF/model/yolov5/yolov5.eng",
-  "weightsDir": "H:/myGitHub/tensorrtF/model/yolov5/wts/",
-  "fp16": false,
-  "Mean": [ 0.0, 0.0, 0.0 ],
-  "Std": [ 1.0, 1.0, 1.0 ],
+  "createENG": true,
+  "ENGPath": "D:/qt_project/tensorrtF/model/yolov5.eng",
+  "weightsDir": "D:/qt_project/tensorrtF/model/wts/",
+  "fp16": true,
   "inputBlobName": "data",
   "outputBlobName": "prob",
   "outputSize": 1801,
   "maxBatchsize": 10,
+  "doInfer": true,
+  "BatchSize": 3, //  [1,maxBatchsize]
+  "imgDir": "D:/qt_project/tensorrtCV/model/yolo/",
+  "imgType": "jpg",
   "network": [
     {
       "layerStyle": "preInput",
@@ -21,14 +24,13 @@
     {
       "layerStyle": "focus",
       "layerName": "focus_0",
-      
       "inputName": "m_s"
     },
     {
       "layerStyle": "cba",
       "layerName": "conv_1",
       "inputName": "focus_0",
-      
+
       "convFile": "model.0.conv.conv",
       "parameter": {
         "output_c": 32,
@@ -44,7 +46,7 @@
       "layerStyle": "cba",
       "layerName": "conv_2",
       "inputName": "conv_1",
-      
+
       "convFile": "model.1.conv",
       "parameter": {
         "output_c": 64,
@@ -60,7 +62,6 @@
       "layerStyle": "C3",
       "layerName": "bottleneck_CSP2",
       "inputName": "conv_2",
-      
       "c1": 64,
       "c2": 64,
       "n": 1,
@@ -123,7 +124,6 @@
       "c2": 256,
       "n": 3,
       "shortCut": true,
-      "g": 1,
       "e": 0.5,
       "lname": "model.6",
       "active_type": "silu",
@@ -148,7 +148,6 @@
       "layerStyle": "spp",
       "layerName": "spp_8",
       "inputName": "conv_7",
-      
       "lname": "model.8",
       "c1": 512,
       "c2": 512,
@@ -174,7 +173,7 @@
       "layerStyle": "cba",
       "layerName": "conv_10",
       "inputName": "bottleneck_CSP9",
-      
+
       "convFile": "model.10.conv",
       "parameter": {
         "output_c": 256,
@@ -189,7 +188,7 @@
     {
       "layerStyle": "upsample",
       "layerName": "upsample_11",
-      
+
       "mode": "nearest",
       "inputName": "conv_10"
     },
@@ -330,7 +329,7 @@
       "inputName": "bottleneck_CSP17",
       "weightFile": "model.24.m.0",
       "biasFile": "model.24.m.0",
-      
+
       "parameter": {
         "output_c": 255, // output_c = 3 * (cls_num + 5)
         "kernel": [ 1 ]
@@ -342,7 +341,7 @@
       "inputName": "bottleneck_CSP20",
       "weightFile": "model.24.m.1",
       "biasFile": "model.24.m.1",
-      
+
       "parameter": {
         "output_c": 255, // output_c = 3 * (cls_num + 5)
         "kernel": [ 1 ]
@@ -354,7 +353,7 @@
       "inputName": "bottleneck_CSP23",
       "weightFile": "model.24.m.2",
       "biasFile": "model.24.m.2",
-      
+
       "parameter": {
         "output_c": 255, // output_c = 3 * (cls_num + 5)
         "kernel": [ 1 ]
@@ -366,6 +365,7 @@
       "outputName": "prob",
       "inputName": [ "det_0", "det_1", "det_2" ],
       "anchor_grid": "model.24.anchor_grid",
+      //"Anchor": [ 10  ,13  ,16  ,30  ,33  ,23  ,30  ,61  ,62  ,45  ,59  ,119  ,116  ,90  ,156  ,198  ,373  ,326  ],
       "cls_num": 80,
       "max_box": 300 //outputSize = 300 * (4 + 1 + 1) +1 =1801  ,4:(x1,y1,x2,y2); 1(conf) ;1 (cls)
     }

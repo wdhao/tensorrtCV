@@ -14,6 +14,7 @@ struct Param{
     int input_c;
     int input_h;
     int input_w;
+    bool createENG;
     string ENGPath;
     bool fp16;
     bool int8;
@@ -29,6 +30,10 @@ struct Param{
     string outputBlobName;
     int maxBatchsize;
     int outputSize;
+    bool doInfer;
+    int BatchSize;
+    string imgDir;
+    string imgType;
     Json::Value layers;
     vector<string> outputNames;
 };

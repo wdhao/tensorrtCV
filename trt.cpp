@@ -14,6 +14,7 @@ trt::trt(const string &jsonPath)
     param.input_h = root["input_h"].asInt();
     param.input_w = root["input_w"].asInt();
 
+    param.createENG = root["createENG"].asBool();
     param.fp16 = root["fp16"].asBool();
     param.int8 = root["int8"].asBool();
     param.Div_255 = root["div_255"].asBool();
@@ -34,6 +35,12 @@ trt::trt(const string &jsonPath)
     param.outputBlobName = root["outputBlobName"].asString();
     param.maxBatchsize = root["maxBatchsize"].asInt();
     param.outputSize = root["outputSize"].asInt();
+
+    param.doInfer = root["doInfer"].asBool();
+    param.BatchSize = root["BatchSize"].asInt();
+    param.imgDir = root["imgDir"].asString();
+    param.imgType = root["imgType"].asString();
+
     param.layers = root["network"];
 
     fp.close();
@@ -1844,11 +1851,19 @@ void trt::trt_yolo(Json::Value layer)
     Json::Value inputs = layer["inputName"];
     string anchor_grid = layer["anchor_grid"].asString();
     vector<float> anchors_yolo = loadWeights(param.weightPath + anchor_grid + ".wgt");
-//    for(int i = 0 ;i < anchors_yolo.size();i++)
-//    {
-//        cout<<anchors_yolo[i]<< "  ,";
-//    }
-//    cout<<endl;
+    if(anchors_yolo.size() == 0)
+    {
+        Json::Value Anchors = layer["Anchors"];
+        for(int i = 0;i < Anchors.size(); i++)
+        {
+            anchors_yolo.push_back(Anchors[i].asFloat());
+        }
+    }
+    if(anchors_yolo.size() == 0)
+    {
+        cout<< "please input anchors or load anchor_grid!"<<endl;
+        assert(0);
+    }
     auto creator = getPluginRegistry()->getPluginCreator("YoloLayer_TRT", "1");
     PluginField pluginMultidata[4];
     int NetData[4];
