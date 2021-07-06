@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.2)
 
 project(tensorrtF)
 
-option(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
+
+option(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 
 if(WIN32)
 add_definitions(-std=c++11)
@@ -12,10 +13,11 @@ set(OpenCV_DIR "D:\\opencv\\opencv346\\build")
 endif(WIN32)
 
 if(UNIX)
-find_package(OpenCV)
+#find_package(OpenCV)
+find_package(OpenCV 3.4.11 REQUIRED)
 endif(UNIX)
 
-set(TENSORRT_DIR "D:\\TensorRT-7.0.0.11.Windows10.x86_64.cuda-10.2.cudnn7.6\\TensorRT-7.0.0.11")
+set(TENSORRT_DIR "/mnt/f/WSL/TensorRT-7.2.3.4/targets/x86_64-linux-gnu")
 
 find_package(CUDA REQUIRED)
 enable_language(CUDA)
@@ -52,14 +54,4 @@ message(STATUS "    libraries: ${OpenCV_LIBS}")
 message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-file(GLOB SOURCE_FILES "*.h" "*.cpp" "*.cu")
-add_executable(tensorrtF ${SOURCE_FILES})
-
-target_link_libraries(tensorrtF nvonnxparser)
-target_link_libraries(tensorrtF nvinfer)
-target_link_libraries(tensorrtF cudart)
-target_link_libraries(tensorrtF ${OpenCV_LIBS})
-
-if(UNIX)
-add_definitions(-O2)
-endif(UNIX)
+add_subdirectory(example)

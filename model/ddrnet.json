@@ -1,0 +1,968 @@
+{
+  "BatchSize": 1,
+  "maxBatchsize":1,
+  "indim":3,
+  "input_c": 3,
+  "input_h": 512,
+  "input_w": 1024,
+  "ENGPath": "/mnt/f/LearningCode/ddrnet/ddrnetwsl.eng",
+  "weightsDir": "/mnt/f/LearningCode/ddrnet/wts/",
+  "int8": false,
+  "fp16": true,
+  "div_255": true,
+  "Mean": [ 0.485, 0.456, 0.406 ],
+  "Std": [ 0.229, 0.224, 0.225 ],
+  "inputBlobName": "data",
+  "outputBlobName": "output",
+  "outputSize": 4194304,
+  "createENG": true,
+  "doInfer": false,
+  "imgDir": "/mnt/f/dataset/oneimg/",
+  "imgType": "png",
+  "network": [
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_16",
+      "inputName": "data",
+      "convFile": "conv1.0",
+      "biasFile":"conv1.0",
+      "parameter": {
+        "input_c": 3,
+        "output_c": 32,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "withBN": true,
+      "bnFile": "conv1.1",
+      "active_type": "relu",
+      "eps": 1e-5
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_19",
+      "inputName": "relu_16",
+      "convFile": "conv1.3",
+       "biasFile":"conv1.3",
+      "parameter": {
+        "input_c": 32,
+        "output_c": 32,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "withBN": true,
+      "bnFile": "conv1.4",
+      "active_type": "relu",
+      "eps": 1e-5
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "relu_26",
+      "inputName": "relu_19",
+      "right":[
+               [  ["layer1.0.conv1", 32, 3, 1, 1],
+                  ["layer1.0.bn1"],
+                  ["relu"]
+               ],
+               [
+                ["layer1.0.conv2", 32, 3, 1, 1],
+                ["layer1.0.bn2"]
+               ]
+          ],
+      "active_type": "relu"
+    },
+    {       
+      "layerStyle": "resnet",
+      "layerName": "relu_33",
+      "inputName": "relu_26",
+      "right":[
+               [  
+                  ["layer1.1.conv1", 32, 3, 1, 1],
+                  ["layer1.1.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer1.1.conv2", 32, 3, 1, 1],
+                  ["layer1.1.bn2"]
+               ]
+          ],
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "relu_42",
+      "inputName": "relu_33",
+      "left":[
+               [
+                  ["layer2.0.conv1", 64, 3, 2, 1],
+                  ["layer2.0.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer2.0.conv2", 64, 3, 1, 1],
+                  ["layer2.0.bn2"]
+               ]
+          ],
+       "right":[
+                   [  
+                      ["layer2.0.downsample.0", 64, 1, 2, 0],
+                      ["layer2.0.downsample.1"]
+                   ]
+          ],
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "add_48",
+      "inputName": "relu_42",
+      "right":[
+               [  
+                  ["layer2.1.conv1", 64, 3, 1, 1],
+                  ["layer2.1.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer2.1.conv2", 64, 3, 1, 1],
+                  ["layer2.1.bn2"]
+               ]
+          ]
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_65",
+      "active_type": "relu",
+      "inputName": "add_48"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "relu_72",
+      "inputName": "relu_65",
+      "right":[
+               [  
+                  ["layer3_.0.conv1", 64, 3, 1, 1],
+                  ["layer3_.0.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer3_.0.conv2", 64, 3, 1, 1],
+                  ["layer3_.0.bn2"]
+               ]
+          ],
+        "active_type": "relu"
+    },
+    { 
+      "layerStyle": "resnet",
+      "layerName": "add_78",
+      "inputName": "relu_72",
+      "right":[
+               [  
+                  ["layer3_.1.conv1", 64, 3, 1, 1],
+                  ["layer3_.1.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer3_.1.conv2", 64, 3, 1, 1],
+                  ["layer3_.1.bn2"]
+               ]
+          ]
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_79",
+      "active_type": "relu",
+      "inputName": "add_78"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_49",
+      "active_type": "relu",
+      "inputName": "add_48"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "relu_58",
+      "inputName": "relu_49",
+      "left":[
+               [
+                  ["layer3.0.conv1", 128, 3, 2, 1],
+                  ["layer3.0.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer3.0.conv2", 128, 3, 1, 1],
+                  ["layer3.0.bn2"]
+               ]
+          ],
+       "right":[
+                   [  
+                      ["layer3.0.downsample.0", 128, 1, 2, 0],
+                      ["layer3.0.downsample.1"]
+                   ]
+          ],
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "add_64",
+      "inputName": "relu_58",
+      "right":[
+               [  
+                  ["layer3.1.conv1", 128, 3, 1, 1],
+                  ["layer3.1.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer3.1.conv2", 128, 3, 1, 1],
+                  ["layer3.1.bn2"]
+               ]
+          ]
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "BatchNormalization_81",
+      "inputName": "relu_79",
+      "convFile": "down3.0",
+      "parameter": {
+        "input_c": 64,
+        "output_c": 128,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "withBN": true,
+      "bnFile": "down3.1"
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_82",
+      "inputName": [ "add_64", "BatchNormalization_81" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_83",
+      "active_type": "relu",
+      "inputName": "add_64"
+    },
+    {            
+      "layerStyle": "cba",
+      "layerName": "BatchNormalization_85",
+      "inputName": "relu_83",
+      "convFile": "compression3.0",
+      "parameter": {
+        "input_c": 128,
+        "output_c": 64,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "withBN": true,
+      "bnFile": "compression3.1"
+    },
+    { 
+      "layerStyle": "upsample",
+      "layerName": "Upsample_96",
+      "inputName": "BatchNormalization_85",
+      "mode": "linear",
+      "grid" : [64, 128]
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_97",
+      "inputName": [ "add_78", "Upsample_96" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_114",
+      "active_type": "relu",
+      "inputName": "add_97"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_98",
+      "active_type": "relu",
+      "inputName": "add_82"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "relu_107",
+      "inputName": "relu_98",
+      "left":[
+               [
+                  ["layer4.0.conv1", 256, 3, 2, 1],
+                  ["layer4.0.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer4.0.conv2", 256, 3, 1, 1],
+                  ["layer4.0.bn2"]
+               ]
+          ],
+       "right":[
+                   [  
+                      ["layer4.0.downsample.0", 256, 1, 2, 0],
+                      ["layer4.0.downsample.1"]
+                   ]
+          ],
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "add_113",
+      "inputName": "relu_107",
+      "right":[
+               [  
+                  ["layer4.1.conv1", 256, 3, 1, 1],
+                  ["layer4.1.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer4.1.conv2", 256, 3, 1, 1],
+                  ["layer4.1.bn2"]
+               ]
+          ]
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_135",
+      "active_type": "relu",
+      "inputName": "add_113"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "BatchNormalization_137",
+      "inputName": "relu_135",
+      "convFile": "compression4.0",
+      "parameter": {
+        "input_c": 256,
+        "output_c": 64,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "withBN": true,
+      "bnFile": "compression4.1"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "relu_121",
+      "inputName": "relu_114",
+      "right":[
+               [  
+                  ["layer4_.0.conv1", 64, 3, 1, 1],
+                  ["layer4_.0.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer4_.0.conv2", 64, 3, 1, 1],
+                  ["layer4_.0.bn2"]
+               ]
+          ],
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "add_127",
+      "inputName": "relu_121",
+      "right":[
+               [  
+                  ["layer4_.1.conv1", 64, 3, 1, 1],
+                  ["layer4_.1.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer4_.1.conv2", 64, 3, 1, 1],
+                  ["layer4_.1.bn2"]
+               ]
+          ]
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "Upsample_148",
+      "inputName": "BatchNormalization_137",
+      "mode": "linear",
+      "grid" : [64, 128]
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_149",
+      "inputName": [ "add_127", "Upsample_148" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_150",
+      "active_type": "relu",
+      "inputName": "add_149"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "add_161",
+      "inputName": "relu_150",
+      "left":[
+               [
+                  ["layer5_.0.conv1", 64, 1, 1, 0],
+                  ["layer5_.0.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer5_.0.conv2", 64, 3, 1, 1],
+                  ["layer5_.0.bn2"],
+                  ["relu"]
+               ],
+               [
+                  ["layer5_.0.conv3", 128, 1, 1, 0],
+                  ["layer5_.0.bn3"]
+               ]
+          ],
+       "right":[
+                   [  
+                      ["layer5_.0.downsample.0", 128, 1, 1, 0],
+                      ["layer5_.0.downsample.1"]
+                   ]
+          ]
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_128",
+      "active_type": "relu",
+      "inputName": "add_127"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_131",
+      "inputName": "relu_128",
+      "convFile": "down4.0",
+      "parameter": {
+        "input_c": 64,
+        "output_c": 128,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "withBN": true,
+      "bnFile": "down4.1",
+      "active_type": "relu",
+      "eps": 1e-5
+    },
+    {      
+      "layerStyle": "cba",
+      "layerName": "BatchNormalization_133",
+      "inputName": "relu_131",
+      "convFile": "down4.3",
+      "parameter": {
+        "input_c": 128,
+        "output_c": 256,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "withBN": true,
+      "bnFile": "down4.4"
+    },
+    { 
+      "layerStyle": "eltwise",
+      "layerName": "add_134",
+      "inputName": [ "add_113", "BatchNormalization_133" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_162",
+      "active_type": "relu",
+      "inputName": "add_134"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "add_173",
+      "inputName": "relu_162",
+      "left":[
+               [
+                  ["layer5.0.conv1", 256, 1, 1, 0],
+                  ["layer5.0.bn1"],
+                  ["relu"]
+               ],
+               [
+                  ["layer5.0.conv2", 256, 3, 2, 1],
+                  ["layer5.0.bn2"],
+                  ["relu"]
+               ],
+               [
+                  ["layer5.0.conv3", 512, 1, 1, 0],
+                  ["layer5.0.bn3"]
+               ]
+          ],
+       "right":[
+                   [  
+                      ["layer5.0.downsample.0", 512, 1, 2, 0],
+                      ["layer5.0.downsample.1"]
+                   ]
+          ]
+    },
+    {
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_180",
+      "inputName": "add_173",
+      "weightFile": "spp.scale0.0"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_181",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_180"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_182",
+      "inputName": "relu_181",
+      "weightFile": "spp.scale0.2",
+       "parameter": {
+        "input_c": 512,
+        "output_c": 128,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "pool",
+      "layerName": "AveragePool_184",
+      "inputName": "add_173",
+      "parameter": {
+        "poolType": "kAVG",
+        "kernel": [ 5, 5 ],
+        "padding": [ 2, 2 ],
+        "stride": [ 2, 2 ]
+      }
+    },
+    {
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_185",
+      "inputName": "AveragePool_184",
+      "weightFile": "spp.scale1.1"
+    },
+    {
+
+      "layerStyle": "active",
+      "layerName": "relu_186",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_185"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_187",
+      "inputName": "relu_186",
+      "weightFile": "spp.scale1.3",
+       "parameter": {
+        "input_c": 512,
+        "output_c": 128,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "Upsample_198",
+      "inputName": "conv_187",
+      "mode": "linear",
+      "grid" : [8, 16]
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_199",
+      "inputName": [ "conv_182", "Upsample_198" ],
+      "eltType": "kSUM"
+    },
+     {
+      "layerStyle": "pool",
+      "layerName": "AveragePool_204",
+      "inputName": "add_173",
+      "parameter": {
+        "poolType": "kAVG",
+        "kernel": [ 9, 9 ],
+        "padding": [ 4, 4 ],
+        "stride": [ 4, 4 ]
+      }
+    },
+    {
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_205",
+      "inputName": "AveragePool_204",
+      "weightFile": "spp.scale2.1"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_206",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_205"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_207",
+      "inputName": "relu_206",
+      "weightFile": "spp.scale2.3",
+       "parameter": {
+        "input_c": 512,
+        "output_c": 128,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "Upsample_218",
+      "inputName": "conv_207",
+      "mode": "linear",
+      "grid" : [8, 16]
+    },
+    {
+      "layerStyle": "pool",
+      "layerName": "AveragePool_224",
+      "inputName": "add_173",
+      "parameter": {
+        "poolType": "kAVG",
+        "kernel": [ 17, 17],
+        "padding": [ 8, 8 ],
+        "stride": [ 8, 8 ]
+      }
+    },
+    {
+
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_225",
+      "inputName": "AveragePool_224",
+      "weightFile": "spp.scale3.1"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_226",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_225"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_227",
+      "inputName": "relu_226",
+      "weightFile": "spp.scale3.3",
+       "parameter": {
+        "input_c": 512,
+        "output_c": 128,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "Upsample_238",
+      "inputName": "conv_227",
+      "mode": "linear",
+      "grid" : [8, 16]
+    },
+    {
+      "layerStyle": "reduce",
+      "layerName": "GlobalAveragePool_243",
+      "inputName": "add_173",
+      "axes": 6,
+      "keepD": true
+    },
+    {
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_244",
+      "inputName": "GlobalAveragePool_243",
+      "weightFile": "spp.scale4.1"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_245",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_244"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_246",
+      "inputName": "relu_245",
+      "weightFile": "spp.scale4.3",
+       "parameter": {
+        "input_c": 512,
+        "output_c": 128,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "Upsample_257",
+      "inputName": "conv_246",
+      "mode": "linear",
+      "grid" : [8, 16]
+    },
+    {
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_200",
+      "inputName": "add_199",
+      "weightFile": "spp.process1.0"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_201",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_200"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_202",
+      "inputName": "relu_201",
+      "weightFile": "spp.process1.2",
+       "parameter": {
+        "input_c": 128,
+        "output_c": 128,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_219",
+      "inputName": [ "conv_202", "Upsample_218" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_220",
+      "inputName": "add_219",
+      "weightFile": "spp.process2.0"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_221",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_220"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_222",
+      "inputName": "relu_221",
+      "weightFile": "spp.process2.2",
+       "parameter": {
+        "input_c": 128,
+        "output_c": 128,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_239",
+      "inputName": [ "conv_222", "Upsample_238" ],
+      "eltType": "kSUM"
+    },
+     {
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_240",
+      "inputName": "add_239",
+      "weightFile": "spp.process3.0"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_241",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_240"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_242",
+      "inputName": "relu_241",
+      "weightFile": "spp.process3.2",
+       "parameter": {
+        "input_c": 128,
+        "output_c": 128,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_258",
+      "inputName": [ "conv_242", "Upsample_257" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_259",
+      "inputName": "add_258",
+      "weightFile": "spp.process4.0"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_260",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_259"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_261",
+      "inputName": "relu_260",
+      "weightFile": "spp.process4.2",
+       "parameter": {
+        "input_c": 128,
+        "output_c": 128,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "concat",
+      "layerName": "Concat_262",
+      "axis": 0,
+      "inputName": [ "conv_182", "conv_202", "conv_222", "conv_242", "conv_261" ]
+    },
+    {
+      
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_263",
+      "inputName": "Concat_262",
+      "weightFile": "spp.compression.0"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_264",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_263"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_265",
+      "inputName": "relu_264",
+      "weightFile": "spp.compression.2",
+       "parameter": {
+        "input_c": 640,
+        "output_c": 128,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_266",
+      "inputName": "add_173",
+      "weightFile": "spp.shortcut.0"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_267",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_266"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_268",
+      "inputName": "relu_267",
+      "weightFile": "spp.shortcut.2",
+       "parameter": {
+        "input_c": 512,
+        "output_c": 128,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_269",
+      "inputName": [ "conv_265", "conv_268" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "Upsample_280",
+      "inputName": "add_269",
+      "mode": "linear",
+      "grid" : [64, 128]
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_281",
+      "inputName": [ "add_161", "Upsample_280" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_282",
+      "inputName": "add_281",
+      "weightFile": "final_layer.bn1"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_283",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_282"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_284",
+      "inputName": "relu_283",
+      "weightFile": "final_layer.conv1",
+       "parameter": {
+        "input_c": 128,
+        "output_c": 64,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "bn",
+      "layerName": "BatchNormalization_285",
+      "inputName": "conv_284",
+      "weightFile": "final_layer.bn2"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_286",
+      "active_type": "relu",
+      "inputName": "BatchNormalization_285"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_287",
+      "inputName": "relu_286",
+      "weightFile": "final_layer.conv2",
+       "parameter": {
+        "input_c": 64,
+        "output_c": 19,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "Upsample_final",
+      "inputName": "conv_287",
+      "mode": "linear",
+      "grid" : [512, 1024]
+    },
+    {
+                "outputName": "output", 
+      "layerStyle": "topk",
+      "layerName": "top_max",
+      "inputName": "Upsample_final",
+      "TopKOperation": "kMAX",
+      "k": 1,
+      "reduceAxes": 1,
+      "outputIndex": 1
+    }
+  ]
+
+}
