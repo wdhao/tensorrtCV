@@ -1,8 +1,8 @@
+//#include <direct.h>
 #include "trt.h"
 #include "utils.h"
 #include "yololayer.h"
-#include <io.h>
-#include <direct.h>
+//#include <io.h>
 
 cv::Rect get_rect(cv::Mat& img, float bbox[4], int& INPUT_W,int& INPUT_H) {
     int l, r, t, b;
@@ -100,14 +100,14 @@ static inline cv::Mat preprocess_img(cv::Mat& img, int input_w, int input_h) {
 
 int main(int argc ,char** argv)
 {
-    string JsonPath = argv[1];//"D:/qt_project/tensorrtCV/model/yolo/yolov5s.json";
+    string JsonPath = "/mnt/f/LearningCode/LinuxCode/tensorrtCV/model/yolo/yolov5s.json";
     trt *m_trt = new trt(JsonPath);
     if(m_trt->param.createENG)
         m_trt->createENG();
     if(!m_trt->param.doInfer)
         return 0;
     int batchsize = m_trt->param.BatchSize;
-    m_trt->inference_init(batchsize);
+    m_trt->inference_init(batchsize, m_trt->getOutDim());
     vector<cv::Mat> testVal;
     vector<string> imgs;
     string pattern = m_trt->param.imgDir+ "*."+m_trt->param.imgType;//"D:/qt_project/tensorrtCV/model/yolo/*.jpg";
@@ -115,10 +115,10 @@ int main(int argc ,char** argv)
     cv::glob(pattern, images_names, false);
 
     string outputPath = m_trt->param.imgDir+ "output/";
-    if(_access(outputPath.c_str(),0) == -1)
-    {
-        _mkdir(outputPath.c_str());
-    }
+    // if(access(outputPath.c_str(),0) == -1)
+    // {
+    //     mkdir(outputPath.c_str());
+    // }
     int inputH = m_trt->param.input_h;
     int inputW = m_trt->param.input_w;
     int flag = 1;
@@ -182,7 +182,7 @@ int main(int argc ,char** argv)
                 cv::rectangle(img, r, cv::Scalar(0x27, 0xC1, 0x36), 2);
                 cv::putText(img, std::to_string((int)res[j].class_id), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0x00, 0x00), 2);
             }
-            string outPath = imgs[b].replace(0,m_trt->param.imgDir.size(),outputPath);//"D:/qt_project/tensorrtCV/model/test/1.jpg";
+            string outPath = imgs[b].replace(0,m_trt->param.imgDir.size(),"./");//"D:/qt_project/tensorrtCV/model/test/1.jpg";
             cv::imwrite(outPath, img);
         }
         imgs.clear();

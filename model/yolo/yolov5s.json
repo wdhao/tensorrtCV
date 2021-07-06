@@ -3,8 +3,8 @@
   "input_h": 640,
   "input_w": 640,
   "createENG": true,
-  "ENGPath": "D:/qt_project/tensorrtF/model/yolov5.eng",
-  "weightsDir": "D:/qt_project/tensorrtF/model/wts/",
+  "ENGPath": "/mnt/f/LearningCode/LinuxCode/yolov5-4.0/yolov5.eng",
+  "weightsDir": "/mnt/f/LearningCode/LinuxCode/yolov5-4.0/wts/",
   "fp16": true,
   "inputBlobName": "data",
   "outputBlobName": "prob",
@@ -12,7 +12,7 @@
   "maxBatchsize": 10,
   "doInfer": true,
   "BatchSize": 3, //  [1,maxBatchsize]
-  "imgDir": "D:/qt_project/tensorrtCV/model/yolo/",
+  "imgDir": "/mnt/f/dataset/oneimg/",
   "imgType": "jpg",
   "network": [
     {

@@ -5,8 +5,9 @@
 #include <fstream>
 #include "json.h"
 #include <assert.h>
-#include "NvOnnxParser.h"
-#include "NvOnnxConfig.h"
+#include<NvOnnxParser.h>
+//#include "NvOnnxParser.h"
+#include<NvOnnxConfig.h>
 #include "calibrator.h"
 
 
@@ -80,7 +81,7 @@ public:
     void createENG();
     void onnx2trt();
     void addLayer(Json::Value layer);
-    void inference_init(int batchsize);
+    void inference_init(int batchsize, int outputsize);
     void doInference(const float *input, int batchsize, float *output);
     void doInference_int(const float *input, int batchsize, int *output);
     ITensor* trt_convNet(ITensor* input,string weightsPath,string biasFile,
@@ -136,6 +137,9 @@ public:
 
 
     Param param;
+	//test
+	int getOutDim() { return m_ioutdims; }
+	void setoutput(int outsize, ITensor * input, std::string outputName);
 private:
     Logger m_logger;
 
@@ -149,6 +153,7 @@ private:
     nvinfer1::ICudaEngine *m_engine;
     int inputIndex;
     int outputIndex;
+	int m_ioutdims{1};
 };
 
 #endif // TRT_H
