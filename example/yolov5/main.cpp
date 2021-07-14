@@ -1,9 +1,20 @@
 #include "trt.h"
 #include "utils.h"
 #include "yololayer.h"
-#include <io.h>
-#include <direct.h>
 #include <opencv2/opencv.hpp>
+#include <chrono>
+//windows下
+#ifdef WIN32
+#include <direct.h>
+#include <io.h>
+#endif
+//linux下
+#ifdef linux
+#include <dirent.h>
+#include <sys/io.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 cv::Rect get_rect(cv::Mat& img, float bbox[4], int& INPUT_W, int& INPUT_H) {
     int l, r, t, b;
@@ -109,10 +120,18 @@ void yolo_img(trt* m_trt, int& batchsize)
     cv::glob(pattern, images_names, false);
 
     string outputPath = m_trt->param.imgDir + "output/";
+#ifdef WIN32
     if (_access(outputPath.c_str(), 0) == -1)
     {
         _mkdir(outputPath.c_str());
     }
+#endif
+#ifdef linux
+    if (access(outputPath.c_str(), 0) == -1)
+    {
+        mkdir(outputPath.c_str(), 0777);
+    }
+#endif
     int inputH = m_trt->param.input_h;
     int inputW = m_trt->param.input_w;
     int flag = 1;
@@ -192,10 +211,18 @@ void yolo_vedio(trt* m_trt, int& batchsize)
     vector<cv::String> vedios_names;
     cv::glob(vedios, vedios_names, false);
     string outputPath = m_trt->param.imgDir + "output/";
+#ifdef WIN32
     if (_access(outputPath.c_str(), 0) == -1)
     {
         _mkdir(outputPath.c_str());
     }
+#endif
+#ifdef linux
+    if (access(outputPath.c_str(), 0) == -1)
+    {
+        mkdir(outputPath.c_str(), 0777);
+    }
+#endif
     int inputH = m_trt->param.input_h;
     int inputW = m_trt->param.input_w;
     float* input = new float[batchsize * m_trt->param.input_c * inputH * inputW];
