@@ -28,9 +28,9 @@ struct Param{
     string wtsAllPath;
     string onnxPath;
     string inputBlobName;
-    string outputBlobName;
+    //string outputBlobName;
     int maxBatchsize;
-    int outputSize;
+    int outputSize = 0;
     bool doInfer;
     int BatchSize;
     string imgDir;
@@ -138,22 +138,22 @@ public:
 
     Param param;
 	//test
-	int getOutDim() { return m_ioutdims; }
+	//int getOutDim() { return m_ioutdims; }
 	void setoutput(int outsize, ITensor * input, std::string outputName);
 private:
     Logger m_logger;
 
-    map<string,ITensor*> Layers;
-    INetworkDefinition *m_Network; //network
-    vector<void *> m_bindings;
-//    vector<float *> bind_input;
-//    vector<int *> bind_output;
-    nvinfer1::IExecutionContext *m_context;
+    map<string, ITensor*> Layers;
+    INetworkDefinition* m_Network; //network
+    vector<void*> m_bindings;
+    void* temp;
+    vector<int> outputs;
+    nvinfer1::IExecutionContext* m_context;
     cudaStream_t m_cudaStream;
-    nvinfer1::ICudaEngine *m_engine;
+    nvinfer1::ICudaEngine* m_engine;
     int inputIndex;
     int outputIndex;
-	int m_ioutdims{1};
+	//int m_ioutdims{1};
 };
 
 #endif // TRT_H
