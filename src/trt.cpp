@@ -32,9 +32,9 @@ trt::trt(const string &jsonPath)
         param.std.push_back(root["Std"][i].asFloat());
     }
     param.inputBlobName = root["inputBlobName"].asString();
-    param.outputBlobName = root["outputBlobName"].asString();
+    //param.outputBlobName = root["outputBlobName"].asString();
     param.maxBatchsize = root["maxBatchsize"].asInt();
-    param.outputSize = root["outputSize"].asInt();
+    //param.outputSize = root["outputSize"].asInt();
 
     param.doInfer = root["doInfer"].asBool();
     param.BatchSize = root["BatchSize"].asInt();
@@ -61,6 +61,9 @@ trt::~trt()
     }
     for(auto bindings : m_bindings){
         cudaFree(bindings);
+    }
+    if (temp) {
+        cudaFree(temp);
     }
     free(m_cudaStream);
 }
@@ -268,25 +271,44 @@ void trt::inference_init(int batchsize, int outputsize)
     m_context = m_engine->createExecutionContext();
     if(cudaStreamCreate(&m_cudaStream)!=0) return;
     int bindings = m_engine->getNbBindings();
+    if (bindings < 2)
+    {
+        cout << "Error! the network have one input and one output at least!" << endl;
+        return;
+    }
     m_bindings.resize(bindings,nullptr);
-
+    outputs.clear();
     //cout<<param.inputBlobName<<"  ~~~~~~~~~~~~~~~~~~~"<<endl;
     inputIndex = m_engine->getBindingIndex(param.inputBlobName.c_str());
-    //
-    //cout<<param.outputSize<<endl;
-    int flag = cudaMalloc(&m_bindings.at(inputIndex),batchsize * param.input_c * param.input_h * param.input_w * 4);
-    if(flag != 0){
-        cout<<"input malloc error!"<<endl;
-        assert(0);
-    }
 
-    outputIndex = m_engine->getBindingIndex(param.outputBlobName.c_str());
-	//flag = cudaMalloc(&m_bindings.at(outputIndex), batchsize * param.outputSize * 4);
-	flag = cudaMalloc(&m_bindings.at(outputIndex),batchsize *  outputsize * 4);
-    if(flag != 0)
+    CUDA_CHECK(cudaMalloc(&m_bindings.at(inputIndex),batchsize * param.input_c * param.input_h * param.input_w * 4));
+
+    if (bindings == 2)
     {
-        cout<<"output malloc error!"<<endl;
-        assert(0);
+        Dims outputDims = m_engine->getBindingDimensions(1);
+        int OutputSize = 1;
+        for (int i = 0; i < outputDims.nbDims; i++)
+        {
+            OutputSize *= outputDims.d[i];
+        }
+        param.outputSize = OutputSize;
+        CUDA_CHECK(cudaMalloc(&m_bindings.at(1), batchsize * param.outputSize * 4));
+    }
+    if (bindings > 2)
+    {
+        for (int i = 1; i < bindings; i++)
+        {
+            Dims outputDims = m_engine->getBindingDimensions(i);
+            int OutputSize = 1;
+            for (int i = 0; i < outputDims.nbDims; i++)
+            {
+                OutputSize *= outputDims.d[i];
+            }
+            outputs.push_back(OutputSize);
+            CUDA_CHECK(cudaMalloc(&m_bindings.at(i), batchsize * OutputSize * 4));
+            param.outputSize += OutputSize;
+        }
+        CUDA_CHECK(cudaMalloc(&temp, batchsize * param.outputSize * 4));
     }
 
 }
@@ -297,8 +319,22 @@ void trt::doInference(const float *input, int batchsize, float *output)
 
     m_context->enqueue(batchsize,m_bindings.data(),m_cudaStream,nullptr);
 
-    CUDA_CHECK(cudaMemcpyAsync(output,m_bindings.at(outputIndex),batchsize * param.outputSize * 4,
-                           cudaMemcpyDeviceToHost,m_cudaStream));
+    if (m_bindings.size() == 2)
+    {
+        CUDA_CHECK(cudaMemcpyAsync(output, m_bindings.at(1), batchsize * param.outputSize * 4,
+            cudaMemcpyDeviceToHost, m_cudaStream));
+    }
+    if (m_bindings.size() > 2)
+    {
+        int outNum = 0;
+        for (int i = 1; i < m_bindings.size(); i++)
+        {
+            CUDA_CHECK(cudaMemcpyAsync((float*)temp + batchsize * outNum, m_bindings.at(i), batchsize * outputs[i - 1] * 4,
+                cudaMemcpyDeviceToDevice, m_cudaStream));
+            outNum += outputs[i - 1];
+        }
+        CUDA_CHECK(cudaMemcpyAsync(output, temp, batchsize * param.outputSize * 4, cudaMemcpyDeviceToHost, m_cudaStream))
+    }
 
     cudaStreamSynchronize(m_cudaStream);
 }
@@ -1740,10 +1776,10 @@ void trt::setoutput(int outsize, ITensor * input, std::string outputName)
 	{
 		input->setName(outputName.c_str());
 		m_Network->markOutput(*input);
-		for (int i = 0; i < input->getDimensions().nbDims; i++)
-		{
-			m_ioutdims *= input->getDimensions().d[i];
-		}
+		//for (int i = 0; i < input->getDimensions().nbDims; i++)
+		//{
+		//	m_ioutdims *= input->getDimensions().d[i];
+		//}
 	}
 }
 void trt::trt_yolo(Json::Value layer)

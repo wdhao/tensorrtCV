@@ -1,0 +1,1260 @@
+{
+  "input_c": 3,
+  "input_h": 640,
+  "input_w": 640,
+  "ENGPath": "D:/hrnet_ocr/github/hrnet_w18.eng",
+  "weightsDir": "D:/hrnet_ocr/github/wts/",
+  "createENG": true,
+  "int8": false,
+  "fp16": false,
+  "inputBlobName": "data",
+  "maxBatchsize": 10,
+  "BatchSize": 3, //  [1,maxBatchsize]
+  "imgDir": "D:/hrnet_ocr/github/imgs/",
+  "imgType": "png",
+  "network": [
+    {
+      "layerStyle": "preInput",
+      "layerName": "ms",
+      "inputName": "data",
+      "div255": true,
+      "Mean": [ 0.485, 0.456, 0.406 ],
+      "Std": [ 0.229, 0.224, 0.225 ]
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "conv_0",
+      "inputName": "ms",
+      "convFile": "conv1",
+      "parameter": {
+        "output_c": 64,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "bn1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "conv_3",
+      "inputName": "conv_0",
+      "convFile": "conv2",
+      "parameter": {
+        "output_c": 64,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "bn2",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet",
+      "layerName": "layer1",
+      "inputName": "conv_3",
+      "weightFile": "layer1",
+      "deep": 3,
+      "down": 1,
+      "output_c": 256
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_50",
+      "inputName": "layer1",
+      "convFile": "transition1.0.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "transition1.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "stage20_b0",
+      "inputName": "relu_50",
+      "deep": 4,
+      "weightFile": "stage2.0.branches.0"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_53",
+      "inputName": "layer1",
+      "convFile": "transition1.1.0.0",
+      "parameter": {
+        "output_c": 36,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "transition1.1.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "stage20_b1",
+      "inputName": "relu_53",
+      "deep": 4,
+      "weightFile": "stage2.0.branches.1"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_132",
+      "inputName": [ "stage20_b1", "stage20_b0" ],
+      "weightFile": "stage2.0.fuse_layers.0.1",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_136",
+      "inputName": [ "stage20_b0", "stage20_b1" ],
+      "weightFile": "stage2.0.fuse_layers.1.0.0",
+      "kernel": 3,
+      "stride": 2,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_139",
+      "inputName": "relu_136",
+      "convFile": "transition2.2.0.0",
+      "parameter": {
+        "output_c": 72,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "transition2.2.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_167",
+      "inputName": "relu_132",
+      "deep": 4,
+      "weightFile": "stage3.0.branches.0"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_195",
+      "inputName": "relu_136",
+      "deep": 4,
+      "weightFile": "stage3.0.branches.1"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_223",
+      "inputName": "relu_139",
+      "deep": 4,
+      "weightFile": "stage3.0.branches.2"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_245",
+      "inputName": [ "relu_195", "relu_167" ],
+      "weightFile": "stage3.0.fuse_layers.0.1",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_268",
+      "inputName": [ "relu_223", "add_245" ],
+      "weightFile": "stage3.0.fuse_layers.0.2",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_271",
+      "inputName": [ "relu_167", "relu_195" ],
+      "weightFile": "stage3.0.fuse_layers.1.0.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_294",
+      "inputName": [ "relu_223", "add_271" ],
+      "weightFile": "stage3.0.fuse_layers.1.2",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_297",
+      "inputName": "relu_167",
+      "convFile": "stage3.0.fuse_layers.2.0.0.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage3.0.fuse_layers.2.0.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "bn_299",
+      "inputName": "relu_297",
+      "convFile": "stage3.0.fuse_layers.2.0.1.0",
+      "parameter": {
+        "output_c": 72,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage3.0.fuse_layers.2.0.1.1"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_302",
+      "inputName": [ "relu_195", "bn_299" ],
+      "weightFile": "stage3.0.fuse_layers.2.1.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_303",
+      "inputName": [ "relu_223", "add_302" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_304",
+      "inputName": "add_303",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_332",
+      "inputName": "relu_268",
+      "deep": 4,
+      "weightFile": "stage3.1.branches.0"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_360",
+      "inputName": "relu_294",
+      "deep": 4,
+      "weightFile": "stage3.1.branches.1"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_388",
+      "inputName": "relu_304",
+      "deep": 4,
+      "weightFile": "stage3.1.branches.2"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_410",
+      "inputName": [ "relu_360", "relu_332" ],
+      "weightFile": "stage3.1.fuse_layers.0.1",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_433",
+      "inputName": [ "relu_388", "add_410" ],
+      "weightFile": "stage3.1.fuse_layers.0.2",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_436",
+      "inputName": [ "relu_332", "relu_360" ],
+      "weightFile": "stage3.1.fuse_layers.1.0.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_459",
+      "inputName": [ "relu_388", "add_436" ],
+      "weightFile": "stage3.1.fuse_layers.1.2",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_462",
+      "inputName": "relu_332",
+      "convFile": "stage3.1.fuse_layers.2.0.0.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage3.1.fuse_layers.2.0.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "bn_464",
+      "inputName": "relu_462",
+      "convFile": "stage3.1.fuse_layers.2.0.1.0",
+      "parameter": {
+        "output_c": 72,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage3.1.fuse_layers.2.0.1.1"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_467",
+      "inputName": [ "relu_360", "bn_464" ],
+      "weightFile": "stage3.1.fuse_layers.2.1.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_468",
+      "inputName": [ "relu_388", "add_467" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_469",
+      "inputName": "add_468",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_497",
+      "inputName": "relu_433",
+      "deep": 4,
+      "weightFile": "stage3.2.branches.0"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_525",
+      "inputName": "relu_459",
+      "deep": 4,
+      "weightFile": "stage3.2.branches.1"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_553",
+      "inputName": "relu_469",
+      "deep": 4,
+      "weightFile": "stage3.2.branches.2"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_575",
+      "inputName": [ "relu_525", "relu_497" ],
+      "weightFile": "stage3.2.fuse_layers.0.1",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_598",
+      "inputName": [ "relu_553", "add_575" ],
+      "weightFile": "stage3.2.fuse_layers.0.2",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_601",
+      "inputName": [ "relu_497", "relu_525" ],
+      "weightFile": "stage3.2.fuse_layers.1.0.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_624",
+      "inputName": [ "relu_553", "add_601" ],
+      "weightFile": "stage3.2.fuse_layers.1.2",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_627",
+      "inputName": "relu_497",
+      "convFile": "stage3.2.fuse_layers.2.0.0.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage3.2.fuse_layers.2.0.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "bn_629",
+      "inputName": "relu_627",
+      "convFile": "stage3.2.fuse_layers.2.0.1.0",
+      "parameter": {
+        "output_c": 72,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage3.2.fuse_layers.2.0.1.1"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_632",
+      "inputName": [ "relu_525", "bn_629" ],
+      "weightFile": "stage3.2.fuse_layers.2.1.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_633",
+      "inputName": [ "relu_553", "add_632" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_634",
+      "inputName": "add_633",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_662",
+      "inputName": "relu_598",
+      "deep": 4,
+      "weightFile": "stage3.3.branches.0"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_690",
+      "inputName": "relu_624",
+      "deep": 4,
+      "weightFile": "stage3.3.branches.1"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_718",
+      "inputName": "relu_634",
+      "deep": 4,
+      "weightFile": "stage3.3.branches.2"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_740",
+      "inputName": [ "relu_690", "relu_662" ],
+      "weightFile": "stage3.3.fuse_layers.0.1",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_763",
+      "inputName": [ "relu_718", "add_740" ],
+      "weightFile": "stage3.3.fuse_layers.0.2",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_766",
+      "inputName": [ "relu_662", "relu_690" ],
+      "weightFile": "stage3.3.fuse_layers.1.0.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_789",
+      "inputName": [ "relu_718", "add_766" ],
+      "weightFile": "stage3.3.fuse_layers.1.2",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_792",
+      "inputName": "relu_662",
+      "convFile": "stage3.3.fuse_layers.2.0.0.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage3.3.fuse_layers.2.0.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "bn_794",
+      "inputName": "relu_792",
+      "convFile": "stage3.3.fuse_layers.2.0.1.0",
+      "parameter": {
+        "output_c": 72,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage3.3.fuse_layers.2.0.1.1"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_797",
+      "inputName": [ "relu_690", "bn_794" ],
+      "weightFile": "stage3.3.fuse_layers.2.1.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_798",
+      "inputName": [ "relu_718", "add_797" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_799",
+      "inputName": "add_798",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_802",
+      "inputName": "relu_799",
+      "convFile": "transition3.3.0.0",
+      "parameter": {
+        "output_c": 144,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "transition3.3.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_830",
+      "inputName": "relu_763",
+      "deep": 4,
+      "weightFile": "stage4.0.branches.0"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_858",
+      "inputName": "relu_789",
+      "deep": 4,
+      "weightFile": "stage4.0.branches.1"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_886",
+      "inputName": "relu_799",
+      "deep": 4,
+      "weightFile": "stage4.0.branches.2"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_914",
+      "inputName": "relu_802",
+      "deep": 4,
+      "weightFile": "stage4.0.branches.3"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_936",
+      "inputName": [ "relu_858", "relu_830" ],
+      "weightFile": "stage4.0.fuse_layers.0.1",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_958",
+      "inputName": [ "relu_886", "add_936" ],
+      "weightFile": "stage4.0.fuse_layers.0.2",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_981",
+      "inputName": [ "relu_914", "add_958" ],
+      "weightFile": "stage4.0.fuse_layers.0.3",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_984",
+      "inputName": [ "relu_830", "relu_858" ],
+      "weightFile": "stage4.0.fuse_layers.1.0.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1006",
+      "inputName": [ "relu_886", "add_984" ],
+      "weightFile": "stage4.0.fuse_layers.1.2",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_1029",
+      "inputName": [ "relu_914", "add_1006" ],
+      "weightFile": "stage4.0.fuse_layers.1.3",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1032",
+      "inputName": "relu_830",
+      "convFile": "stage4.0.fuse_layers.2.0.0.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.0.fuse_layers.2.0.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "bn_1034",
+      "inputName": "relu_1032",
+      "convFile": "stage4.0.fuse_layers.2.0.1.0",
+      "parameter": {
+        "output_c": 72,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.0.fuse_layers.2.0.1.1"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1037",
+      "inputName": [ "relu_858", "bn_1034" ],
+      "weightFile": "stage4.0.fuse_layers.2.1.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_1038",
+      "inputName": [ "relu_886", "add_1037" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_1061",
+      "inputName": [ "relu_914", "add_1038" ],
+      "weightFile": "stage4.0.fuse_layers.2.3",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1064",
+      "inputName": "relu_830",
+      "convFile": "stage4.0.fuse_layers.3.0.0.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.0.fuse_layers.3.0.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1067",
+      "inputName": "relu_1064",
+      "convFile": "stage4.0.fuse_layers.3.0.1.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.0.fuse_layers.3.0.1.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "bn_1069",
+      "inputName": "relu_1067",
+      "convFile": "stage4.0.fuse_layers.3.0.2.0",
+      "parameter": {
+        "output_c": 144,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.0.fuse_layers.3.0.2.1"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1072",
+      "inputName": "relu_858",
+      "convFile": "stage4.0.fuse_layers.3.1.0.0",
+      "parameter": {
+        "output_c": 36,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.0.fuse_layers.3.1.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1075",
+      "inputName": [ "relu_1072", "bn_1069" ],
+      "weightFile": "stage4.0.fuse_layers.3.1.1",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1078",
+      "inputName": [ "relu_886", "add_1075" ],
+      "weightFile": "stage4.0.fuse_layers.3.2.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_1079",
+      "inputName": [ "relu_914", "add_1078" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_1080",
+      "inputName": "add_1079",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_1108",
+      "inputName": "relu_981",
+      "deep": 4,
+      "weightFile": "stage4.1.branches.0"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_1136",
+      "inputName": "relu_1029",
+      "deep": 4,
+      "weightFile": "stage4.1.branches.1"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_1164",
+      "inputName": "relu_1061",
+      "deep": 4,
+      "weightFile": "stage4.1.branches.2"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_1192",
+      "inputName": "relu_1080",
+      "deep": 4,
+      "weightFile": "stage4.1.branches.3"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1214",
+      "inputName": [ "relu_1136", "relu_1108" ],
+      "weightFile": "stage4.1.fuse_layers.0.1",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1236",
+      "inputName": [ "relu_1164", "add_1214" ],
+      "weightFile": "stage4.1.fuse_layers.0.2",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_1259",
+      "inputName": [ "relu_1192", "add_1236" ],
+      "weightFile": "stage4.1.fuse_layers.0.3",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1262",
+      "inputName": [ "relu_1108", "relu_1136" ],
+      "weightFile": "stage4.1.fuse_layers.1.0.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1284",
+      "inputName": [ "relu_1164", "add_1262" ],
+      "weightFile": "stage4.1.fuse_layers.1.2",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_1307",
+      "inputName": [ "relu_1192", "add_1284" ],
+      "weightFile": "stage4.1.fuse_layers.1.3",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1310",
+      "inputName": "relu_1108",
+      "convFile": "stage4.1.fuse_layers.2.0.0.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.1.fuse_layers.2.0.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "bn_1312",
+      "inputName": "relu_1310",
+      "convFile": "stage4.1.fuse_layers.2.0.1.0",
+      "parameter": {
+        "output_c": 72,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.1.fuse_layers.2.0.1.1"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1315",
+      "inputName": [ "relu_1136", "bn_1312" ],
+      "weightFile": "stage4.1.fuse_layers.2.1.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_1316",
+      "inputName": [ "relu_1164", "add_1315" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_1339",
+      "inputName": [ "relu_1192", "add_1316" ],
+      "weightFile": "stage4.1.fuse_layers.2.3",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1342",
+      "inputName": "relu_1108",
+      "convFile": "stage4.1.fuse_layers.3.0.0.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.1.fuse_layers.3.0.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1345",
+      "inputName": "relu_1342",
+      "convFile": "stage4.1.fuse_layers.3.0.1.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.1.fuse_layers.3.0.1.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "bn_1347",
+      "inputName": "relu_1345",
+      "convFile": "stage4.1.fuse_layers.3.0.2.0",
+      "parameter": {
+        "output_c": 144,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.1.fuse_layers.3.0.2.1"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1350",
+      "inputName": "relu_1136",
+      "convFile": "stage4.1.fuse_layers.3.1.0.0",
+      "parameter": {
+        "output_c": 36,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.1.fuse_layers.3.1.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1353",
+      "inputName": [ "relu_1350", "bn_1347" ],
+      "weightFile": "stage4.1.fuse_layers.3.1.1",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1356",
+      "inputName": [ "relu_1164", "add_1353" ],
+      "weightFile": "stage4.1.fuse_layers.3.2.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_1357",
+      "inputName": [ "relu_1192", "add_1356" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_1358",
+      "inputName": "add_1357",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_1386",
+      "inputName": "relu_1259",
+      "deep": 4,
+      "weightFile": "stage4.2.branches.0"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_1414",
+      "inputName": "relu_1307",
+      "deep": 4,
+      "weightFile": "stage4.2.branches.1"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_1442",
+      "inputName": "relu_1339",
+      "deep": 4,
+      "weightFile": "stage4.2.branches.2"
+    },
+    {
+      "layerStyle": "resnet_hr",
+      "layerName": "relu_1470",
+      "inputName": "relu_1358",
+      "deep": 4,
+      "weightFile": "stage4.2.branches.3"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1492",
+      "inputName": [ "relu_1414", "relu_1386" ],
+      "weightFile": "stage4.2.fuse_layers.0.1",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1514",
+      "inputName": [ "relu_1442", "add_1492" ],
+      "weightFile": "stage4.2.fuse_layers.0.2",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_1537",
+      "inputName": [ "relu_1470", "add_1514" ],
+      "weightFile": "stage4.2.fuse_layers.0.3",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1540",
+      "inputName": [ "relu_1386", "relu_1414" ],
+      "weightFile": "stage4.2.fuse_layers.1.0.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1562",
+      "inputName": [ "relu_1442", "add_1540" ],
+      "weightFile": "stage4.2.fuse_layers.1.2",
+      "kernel": 1,
+      "stride": 1
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_1307",
+      "inputName": [ "relu_1470", "add_1562" ],
+      "weightFile": "stage4.2.fuse_layers.1.3",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1588",
+      "inputName": "relu_1386",
+      "convFile": "stage4.2.fuse_layers.2.0.0.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.2.fuse_layers.2.0.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "bn_1590",
+      "inputName": "relu_1588",
+      "convFile": "stage4.2.fuse_layers.2.0.1.0",
+      "parameter": {
+        "output_c": 72,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.2.fuse_layers.2.0.1.1"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1593",
+      "inputName": [ "relu_1414", "bn_1590" ],
+      "weightFile": "stage4.2.fuse_layers.2.1.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_1594",
+      "inputName": [ "relu_1442", "add_1593" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "relu_1617",
+      "inputName": [ "relu_1470", "add_1594" ],
+      "weightFile": "stage4.2.fuse_layers.2.3",
+      "kernel": 1,
+      "stride": 1,
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1620",
+      "inputName": "relu_1386",
+      "convFile": "stage4.2.fuse_layers.3.0.0.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.2.fuse_layers.3.0.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1623",
+      "inputName": "relu_1620",
+      "convFile": "stage4.2.fuse_layers.3.0.1.0",
+      "parameter": {
+        "output_c": 18,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.2.fuse_layers.3.0.1.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "bn_1625",
+      "inputName": "relu_1623",
+      "convFile": "stage4.2.fuse_layers.3.0.2.0",
+      "parameter": {
+        "output_c": 144,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.2.fuse_layers.3.0.2.1"
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1628",
+      "inputName": "relu_1414",
+      "convFile": "stage4.2.fuse_layers.3.1.0.0",
+      "parameter": {
+        "output_c": 36,
+        "kernel": [ 3, 3 ],
+        "padding": [ 1, 1 ],
+        "stride": [ 2, 2 ]
+      },
+      "bnFile": "stage4.2.fuse_layers.3.1.0.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1631",
+      "inputName": [ "relu_1628", "bn_1625" ],
+      "weightFile": "stage4.2.fuse_layers.3.1.1",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "hrnet_up",
+      "layerName": "add_1634",
+      "inputName": [ "relu_1442", "add_1631" ],
+      "weightFile": "stage4.2.fuse_layers.3.2.0",
+      "kernel": 3,
+      "stride": 2
+    },
+    {
+      "layerStyle": "eltwise",
+      "layerName": "add_1635",
+      "inputName": [ "relu_1470", "add_1634" ],
+      "eltType": "kSUM"
+    },
+    {
+      "layerStyle": "active",
+      "layerName": "relu_1636",
+      "inputName": "add_1635",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "resize_1655",
+      "inputName": "relu_1307",
+      "grid": [ 160 ]
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "resize_1668",
+      "inputName": "relu_1617",
+      "grid": [ 160 ]
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "resize_1681",
+      "inputName": "relu_1636",
+      "grid": [ 160 ]
+    },
+    {
+      "layerStyle": "concat",
+      "layerName": "concat_1682",
+      "inputName": [ "relu_1537", "resize_1655", "resize_1668", "resize_1681" ],
+      "axis": 0
+    },
+    {
+      "layerStyle": "cba",
+      "layerName": "relu_1685",
+      "inputName": "concat_1682",
+      "convFile": "last_layer.0",
+      "biasFile": "last_layer.0",
+      "parameter": {
+        "output_c": 270,
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      },
+      "bnFile": "last_layer.1",
+      "active_type": "relu"
+    },
+    {
+      "layerStyle": "conv",
+      "layerName": "conv_1686",
+      "inputName": "relu_1685",
+      "weightFile": "last_layer.3",
+      "biasFile": "last_layer.3",
+      "parameter": {
+        "output_c": 19, //num classes + backgroud
+        "kernel": [ 1, 1 ],
+        "padding": [ 0, 0 ],
+        "stride": [ 1, 1 ]
+      }
+    },
+    {
+      "layerStyle": "upsample",
+      "layerName": "resize_1687",
+      "inputName": "conv_1686",
+      "grid": [ 640 ] //input size
+    },
+    {
+      "layerStyle": "topk",
+      "layerName": "top_max",
+      "inputName": "resize_1687",
+      "outputName": "output",
+      "TopKOperation": "kMAX",
+      "k": 1,
+      "reduceAxes": 1,
+      "outputIndex": 0
+    }
+  ]
+
+}
