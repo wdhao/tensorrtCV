@@ -15,7 +15,7 @@ file(GLOB TRT_FILES
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
 set(SOURCE_FILES main.cpp)
-add_executable(ddrnet ${SOURCE_FILES} ${TRT_FILES})
+add_executable(hrnet  ${SOURCE_FILES} ${TRT_FILES})
 
 
 target_link_libraries(hrnet nvonnxparser)
