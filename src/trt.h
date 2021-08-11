@@ -5,10 +5,12 @@
 #include <fstream>
 #include "json.h"
 #include <assert.h>
-#include<NvOnnxParser.h>
-//#include "NvOnnxParser.h"
-#include<NvOnnxConfig.h>
+#include "NvOnnxParser.h"
+#include "NvOnnxConfig.h"
 #include "calibrator.h"
+#include "UpsamplePlugin.h"
+#include "yololayer.h"
+#include "hardswish.h"
 
 
 struct Param{
@@ -81,7 +83,7 @@ public:
     void createENG();
     void onnx2trt();
     void addLayer(Json::Value layer);
-    void inference_init(int batchsize, int outputsize);
+    void inference_init(int batchsize);
     void doInference(const float *input, int batchsize, float *output);
     void doInference_int(const float *input, int batchsize, int *output);
     ITensor* trt_convNet(ITensor* input,string weightsPath,string biasFile,
@@ -96,6 +98,8 @@ public:
     ITensor* trt_activeNet(ITensor* input,string acti_type,float alpha=0.0,float beta=0.0);
     ITensor* trt_poolNet(ITensor* input,string pooltype,DimsHW kernel,DimsHW stride,DimsHW padding);
     ITensor* trt_eltNet(ITensor* input1,ITensor* input2,string elt_Type);
+    ITensor* conv_bn_active(ITensor* input,string weightsPath, int output_c,int k,int s=1,int p=0,int dilations=1,int groups=1,
+                            float eps=1e-5, string active_type="relu", float alpha=0.0, float beta=0.0);
     ITensor* trt_resnetCBA(Json::Value temp,ITensor* input);
     void trt_preInput(Json::Value layer);
     void trt_conv(Json::Value layer);
@@ -132,28 +136,28 @@ public:
     void yolo_C3(Json::Value layer);
     void trt_yolo(Json::Value layer);
     void yolo_spp(Json::Value layer);
+    int out_channel(int &out_c, int &n);
+    void resnet(Json::Value layer);
+    void hrnet_res(Json::Value layer);
+    void hrnet_up(Json::Value layer);
 
 
 
 
     Param param;
-	//test
-	//int getOutDim() { return m_ioutdims; }
-	void setoutput(int outsize, ITensor * input, std::string outputName);
 private:
     Logger m_logger;
 
-    map<string, ITensor*> Layers;
-    INetworkDefinition* m_Network; //network
-    vector<void*> m_bindings;
+    map<string,ITensor*> Layers;
+    INetworkDefinition *m_Network; //network
+    vector<void *> m_bindings;
     void* temp;
     vector<int> outputs;
-    nvinfer1::IExecutionContext* m_context;
+    nvinfer1::IExecutionContext *m_context;
     cudaStream_t m_cudaStream;
-    nvinfer1::ICudaEngine* m_engine;
+    nvinfer1::ICudaEngine *m_engine;
     int inputIndex;
     int outputIndex;
-	//int m_ioutdims{1};
 };
 
 #endif // TRT_H

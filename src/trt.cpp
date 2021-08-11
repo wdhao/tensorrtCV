@@ -62,7 +62,7 @@ trt::~trt()
     for(auto bindings : m_bindings){
         cudaFree(bindings);
     }
-    if (temp) {
+    if(temp){
         cudaFree(temp);
     }
     free(m_cudaStream);
@@ -185,6 +185,7 @@ void trt::createENG()
 }
 void trt::addLayer(Json::Value layer)
 {
+
     string layerStyle = layer["layerStyle"].asString();
     if (layerStyle == "conv")
         trt_conv(layer);
@@ -227,9 +228,13 @@ void trt::addLayer(Json::Value layer)
     else if(layerStyle == "cba")
         trt_convBnActive(layer);
     else if(layerStyle == "resnet")
-        trt_resnetLayer(layer);
+        resnet(layer);
     else if (layerStyle == "resnet3")
         trt_resnet3(layer);
+    else if (layerStyle == "resnet_hr")
+        hrnet_res(layer);
+    else if (layerStyle == "hrnet_up")
+        hrnet_up(layer);
     else if(layerStyle == "upsample")
         trt_UpSample(layer);
     else if(layerStyle == "upsample_plugin")
@@ -238,9 +243,8 @@ void trt::addLayer(Json::Value layer)
         trt_groupNorm(layer);
     else if(layerStyle == "unary")
         trt_unary(layer);
-    else if (layerStyle == "C3") {
+    else if (layerStyle == "C3")
         yolo_C3(layer);
-    }
     else if(layerStyle == "yolo")
         trt_yolo(layer);
     else if(layerStyle == "spp")
@@ -250,7 +254,7 @@ void trt::addLayer(Json::Value layer)
         abort();
     }
 }
-void trt::inference_init(int batchsize, int outputsize)
+void trt::inference_init(int batchsize)
 {
     ifstream cache(param.ENGPath,ios::binary);
     cache.seekg(0,ios::end);
@@ -259,56 +263,65 @@ void trt::inference_init(int batchsize, int outputsize)
     void *modelMem = malloc(engSize);
     cache.read((char*)modelMem,engSize);
     cache.close();
-    nvinfer1::IRuntime *runtime = nvinfer1::createInferRuntime(m_logger);
-    nvinfer1::ICudaEngine *engine = runtime->deserializeCudaEngine(modelMem,engSize);
+    IRuntime *runtime = nvinfer1::createInferRuntime(m_logger);
+    m_engine = runtime->deserializeCudaEngine(modelMem,engSize);
     runtime->destroy();
     free(modelMem);
-    if(! engine){
+    if(! m_engine){
         cout<<"deserialize eng error!"<<endl;
         return;
     }
-    m_engine = engine;
     m_context = m_engine->createExecutionContext();
     if(cudaStreamCreate(&m_cudaStream)!=0) return;
     int bindings = m_engine->getNbBindings();
-    if (bindings < 2)
+    if(bindings < 2)
     {
-        cout << "Error! the network have one input and one output at least!" << endl;
+        cout<< "Error! the network have one input and one output at least!"<<endl;
         return;
     }
     m_bindings.resize(bindings,nullptr);
+    //outputs.resize(bindings-1);
     outputs.clear();
     //cout<<param.inputBlobName<<"  ~~~~~~~~~~~~~~~~~~~"<<endl;
     inputIndex = m_engine->getBindingIndex(param.inputBlobName.c_str());
-
-    CUDA_CHECK(cudaMalloc(&m_bindings.at(inputIndex),batchsize * param.input_c * param.input_h * param.input_w * 4));
-
-    if (bindings == 2)
+    //
+    //cout<<param.outputSize<<endl;
+    int flag = cudaMalloc(&m_bindings.at(inputIndex),batchsize * param.input_c * param.input_h * param.input_w * 4);
+    if(flag != 0){
+        cout<<"input malloc error!"<<endl;
+        assert(0);
+    }
+    if(bindings == 2)
     {
         Dims outputDims = m_engine->getBindingDimensions(1);
         int OutputSize = 1;
-        for (int i = 0; i < outputDims.nbDims; i++)
+        for(int i = 0 ;i < outputDims.nbDims; i++)
         {
             OutputSize *= outputDims.d[i];
         }
         param.outputSize = OutputSize;
-        CUDA_CHECK(cudaMalloc(&m_bindings.at(1), batchsize * param.outputSize * 4));
+        flag = cudaMalloc(&m_bindings.at(1),batchsize * param.outputSize * 4);
+        if(flag != 0)
+        {
+            cout<<"output malloc error!"<<endl;
+            assert(0);
+        }
     }
-    if (bindings > 2)
+    if(bindings > 2)
     {
-        for (int i = 1; i < bindings; i++)
+        for(int i = 1; i < bindings; i++)
         {
             Dims outputDims = m_engine->getBindingDimensions(i);
             int OutputSize = 1;
-            for (int i = 0; i < outputDims.nbDims; i++)
+            for(int i = 0 ;i < outputDims.nbDims; i++)
             {
                 OutputSize *= outputDims.d[i];
             }
             outputs.push_back(OutputSize);
-            CUDA_CHECK(cudaMalloc(&m_bindings.at(i), batchsize * OutputSize * 4));
+            CUDA_CHECK(cudaMalloc(&m_bindings.at(i),batchsize * OutputSize * 4));
             param.outputSize += OutputSize;
         }
-        CUDA_CHECK(cudaMalloc(&temp, batchsize * param.outputSize * 4));
+        CUDA_CHECK(cudaMalloc(&temp,batchsize * param.outputSize * 4));
     }
 
 }
@@ -318,22 +331,21 @@ void trt::doInference(const float *input, int batchsize, float *output)
                            cudaMemcpyHostToDevice,m_cudaStream));
 
     m_context->enqueue(batchsize,m_bindings.data(),m_cudaStream,nullptr);
-
-    if (m_bindings.size() == 2)
+    if(m_bindings.size() == 2)
     {
-        CUDA_CHECK(cudaMemcpyAsync(output, m_bindings.at(1), batchsize * param.outputSize * 4,
-            cudaMemcpyDeviceToHost, m_cudaStream));
+        CUDA_CHECK(cudaMemcpyAsync(output,m_bindings.at(1),batchsize * param.outputSize * 4,
+                               cudaMemcpyDeviceToHost,m_cudaStream));
     }
-    if (m_bindings.size() > 2)
+    if(m_bindings.size() > 2)
     {
         int outNum = 0;
-        for (int i = 1; i < m_bindings.size(); i++)
+        for(int i = 1;i < m_bindings.size(); i++)
         {
-            CUDA_CHECK(cudaMemcpyAsync((float*)temp + batchsize * outNum, m_bindings.at(i), batchsize * outputs[i - 1] * 4,
-                cudaMemcpyDeviceToDevice, m_cudaStream));
-            outNum += outputs[i - 1];
+            CUDA_CHECK(cudaMemcpyAsync((float*)temp + batchsize*outNum,m_bindings.at(i),batchsize * outputs[i-1] * 4,
+                                   cudaMemcpyDeviceToDevice,m_cudaStream));
+            outNum += outputs[i-1];
         }
-        CUDA_CHECK(cudaMemcpyAsync(output, temp, batchsize * param.outputSize * 4, cudaMemcpyDeviceToHost, m_cudaStream))
+        CUDA_CHECK(cudaMemcpyAsync(output,temp,batchsize * param.outputSize *4, cudaMemcpyDeviceToHost,m_cudaStream))
     }
 
     cudaStreamSynchronize(m_cudaStream);
@@ -345,7 +357,7 @@ void trt::doInference_int(const float *input, int batchsize, int *output)
 
     m_context->enqueue(batchsize,m_bindings.data(),m_cudaStream,nullptr);
 
-    CUDA_CHECK(cudaMemcpyAsync(output,m_bindings.at(outputIndex), batchsize * param.outputSize * 4,
+    CUDA_CHECK(cudaMemcpyAsync(output,m_bindings.at(outputIndex),batchsize * param.outputSize * 4,
                            cudaMemcpyDeviceToHost,m_cudaStream));
 
     cudaStreamSynchronize(m_cudaStream);
@@ -704,7 +716,11 @@ void trt::trt_preInput(Json::Value layer)
     Layers[layerName] = temp;
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 
 }
 void trt::trt_conv(Json::Value layer)
@@ -766,7 +782,11 @@ void trt::trt_conv(Json::Value layer)
     Layers[layerName] = conv;
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_deconv(Json::Value layer)
 {
@@ -826,7 +846,11 @@ void trt::trt_deconv(Json::Value layer)
     Layers[layerName] = conv;
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_padding(Json::Value layer)
 {
@@ -838,7 +862,11 @@ void trt::trt_padding(Json::Value layer)
     Layers[layerName] = padding->getOutput(0);
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_bn(Json::Value layer)
 {
@@ -853,7 +881,11 @@ void trt::trt_bn(Json::Value layer)
     Layers[layerName] = batchNorm;
     debug_print(Layers[layerName],layerName + " dim:");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_active(Json::Value layer)
 {
@@ -866,7 +898,11 @@ void trt::trt_active(Json::Value layer)
     Layers[layerName] = active;
     string outputName = layer["outputName"].asString();
     debug_print(Layers[layerName],layerName+" dim : ");
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_pool(Json::Value layer)
 {
@@ -895,7 +931,11 @@ void trt::trt_pool(Json::Value layer)
     Layers[layerName] = poolLayer;
     debug_print(Layers[layerName],layerName+" dims :");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_Pool(Json::Value layer)
 {
@@ -918,7 +958,11 @@ void trt::trt_Pool(Json::Value layer)
     Layers[layerName] = poolLayer;
     debug_print(Layers[layerName],layerName+" dims :");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_elt(Json::Value layer)
 {
@@ -929,7 +973,11 @@ void trt::trt_elt(Json::Value layer)
     Layers[layerName] = elt;
     debug_print(Layers[layerName],layerName +" dims :");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_fc(Json::Value layer)
 {
@@ -977,7 +1025,11 @@ void trt::trt_fc(Json::Value layer)
     Layers[layerName] = fc->getOutput(0);
     debug_print(Layers[layerName],layerName+" dim :");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_concat(Json::Value layer)
 {
@@ -994,7 +1046,11 @@ void trt::trt_concat(Json::Value layer)
     Layers[layerName] = concat->getOutput(0);
     debug_print(Layers[layerName],layerName +" dims :");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_slice(Json::Value layer)
 {
@@ -1019,7 +1075,11 @@ void trt::trt_slice(Json::Value layer)
     Layers[layerName] = slice->getOutput(0);
     debug_print(Layers[layerName],"Slice dim :");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_softmax(Json::Value layer)
 {
@@ -1031,7 +1091,11 @@ void trt::trt_softmax(Json::Value layer)
     Layers[layerName] = softmax->getOutput(0);
     debug_print(Layers[layerName],layerName +" dims :");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_shuffle(Json::Value layer)
 {
@@ -1084,7 +1148,11 @@ void trt::trt_shuffle(Json::Value layer)
     Layers[layerName] = shuffle->getOutput(0);
     debug_print(Layers[layerName],"Shuffle dim : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_matmul(Json::Value layer)
 {
@@ -1122,7 +1190,11 @@ void trt::trt_matmul(Json::Value layer)
     Layers[layerName] = matmul->getOutput(0);
     debug_print(Layers[layerName],"Matmul dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_topk(Json::Value layer)
 {
@@ -1148,7 +1220,11 @@ void trt::trt_topk(Json::Value layer)
     Layers[layerName] = topK->getOutput(outputIndex);
     debug_print(Layers[layerName],"topK dim :");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_reduce(Json::Value layer)
 {
@@ -1172,7 +1248,11 @@ void trt::trt_reduce(Json::Value layer)
     Layers[layerName] = reduce->getOutput(0);
     debug_print(Layers[layerName],"reduce dim :");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_constant(Json::Value layer)
 {
@@ -1216,7 +1296,11 @@ void trt::trt_constant(Json::Value layer)
     Layers[layerName] = out->getOutput(0);
     debug_print(Layers[layerName], "dims :");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_pReLU(Json::Value layer)
 {
@@ -1239,7 +1323,11 @@ void trt::trt_pReLU(Json::Value layer)
     Layers[layerName] =  PReLU->getOutput(0);
     debug_print(Layers[layerName],"reduce dim :");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 
 }
 void trt::trt_convBnActive(Json::Value layer)
@@ -1312,7 +1400,11 @@ void trt::trt_convBnActive(Json::Value layer)
     Layers[layerName] = output;
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_resnetLayer(Json::Value layer)
 {
@@ -1345,7 +1437,11 @@ void trt::trt_resnetLayer(Json::Value layer)
     Layers[layerName] = output;
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 
 }
 void trt::trt_resnet3(Json::Value layer)
@@ -1399,7 +1495,11 @@ void trt::trt_resnet3(Json::Value layer)
     Layers[layerName] = result->getOutput(0);
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_focus(Json::Value layer)
 {
@@ -1420,7 +1520,11 @@ void trt::trt_focus(Json::Value layer)
     Layers[layerName] = cat->getOutput(0);
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 
 }
 void trt::trt_UpSample(Json::Value layer)
@@ -1462,7 +1566,11 @@ void trt::trt_UpSample(Json::Value layer)
     Layers[layerName] = out->getOutput(0);
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_UpSample_plugin(Json::Value layer)
 {
@@ -1487,7 +1595,7 @@ void trt::trt_UpSample_plugin(Json::Value layer)
     s[0] = scale_h;
     s[1] = scale_w;
     pField[0].data = s;
-    pField[0].length = 1;
+    pField[0].length = 2;
     pField[0].type = PluginFieldType::kFLOAT32;
     pField[0].name = "scaleFactor";
 
@@ -1501,7 +1609,11 @@ void trt::trt_UpSample_plugin(Json::Value layer)
     Layers[layerName] = upS->getOutput(0);
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 
 }
 void trt::trt_groupNorm(Json::Value layer)
@@ -1600,7 +1712,11 @@ void trt::trt_groupNorm(Json::Value layer)
     Layers[layerName] = sum_bias->getOutput(0);
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::trt_unary(Json::Value layer)
 {
@@ -1674,7 +1790,11 @@ void trt::trt_unary(Json::Value layer)
     Layers[layerName] = unary->getOutput(0);
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 ITensor* trt::convBlock(ITensor *input, int outch, int k, int s, string lname,string acti_type,
                         float eps,float alpha)
@@ -1729,7 +1849,11 @@ void trt::yolo_C3(Json::Value layer)
     Layers[layerName] = cv3;
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
 void trt::yolo_spp(Json::Value layer)
 {
@@ -1762,25 +1886,12 @@ void trt::yolo_spp(Json::Value layer)
     Layers[layerName] = cv2;
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
-    //if (outputName.size() > 0)
-    //{
-    //    Layers[layerName]->setName(outputName.c_str());
-    //    m_Network->markOutput(*Layers[layerName]);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 
-    //}
-}
-void trt::setoutput(int outsize, ITensor * input, std::string outputName)
-{
-	if (outsize > 0)
-	{
-		input->setName(outputName.c_str());
-		m_Network->markOutput(*input);
-		//for (int i = 0; i < input->getDimensions().nbDims; i++)
-		//{
-		//	m_ioutdims *= input->getDimensions().d[i];
-		//}
-	}
 }
 void trt::trt_yolo(Json::Value layer)
 {
@@ -1788,6 +1899,19 @@ void trt::trt_yolo(Json::Value layer)
     Json::Value inputs = layer["inputName"];
     string anchor_grid = layer["anchor_grid"].asString();
     vector<float> anchors_yolo = loadWeights(param.weightPath + anchor_grid + ".wgt");
+    if(anchors_yolo.size() == 0)
+    {
+        Json::Value Anchors = layer["Anchors"];
+        for(int i = 0;i < Anchors.size(); i++)
+        {
+            anchors_yolo.push_back(Anchors[i].asFloat());
+        }
+    }
+    if(anchors_yolo.size() == 0)
+    {
+        cout<< "please input anchors or load anchor_grid!"<<endl;
+        assert(0);
+    }
     auto creator = getPluginRegistry()->getPluginCreator("YoloLayer_TRT", "1");
     PluginField pluginMultidata[4];
     int NetData[4];
@@ -1825,5 +1949,157 @@ void trt::trt_yolo(Json::Value layer)
     Layers[layerName] = yolo->getOutput(0);
     debug_print(Layers[layerName],layerName +" dims : ");
     string outputName = layer["outputName"].asString();
-	setoutput(outputName.size(), Layers[layerName], outputName);
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
+}
+int trt::out_channel(int &out_c, int &n)
+{
+    if(n < 3)
+        return out_c/4;
+    return  out_c;
+}
+void trt::resnet(Json::Value layer)
+{
+    string layerName = layer["layerName"].asString();
+    string inputName = layer["inputName"].asString();
+    string weightFile = layer["weightFile"].asString();
+    weightFile = param.weightPath + weightFile;
+    int down_s = layer["down"].asInt();
+    int deep = layer["deep"].asInt();
+    int out_c = layer["output_c"].asInt();
+    ITensor* temp = Layers[inputName];
+    ITensor* out = Layers[inputName];
+    for(int i = 0; i < deep; i++)
+    {
+        for(int n = 1; n <= 3; n++)
+        {
+            string conv_name = weightFile + "." +to_string(i) + ".conv" + to_string(n) + ".weight.wgt";
+            int channel = out_channel(out_c,n);
+            int k = 1;
+            int s = 1;
+            if(n == 2)
+                k = 3;
+            if(n == 2 && down_s > 0 && i == 0)
+                s = down_s;
+            temp = trt_convNet(temp,conv_name,"",channel,DimsHW{k,k},DimsHW{s,s},DimsHW{k/2,k/2});
+            string bn_name = weightFile + "." +to_string(i) + ".bn" + to_string(n);
+            temp = trt_bnNet(temp,bn_name);
+            if(n != 3)
+            {
+                temp = trt_activeNet(temp,"relu");
+            }
+            debug_print(temp,layerName+to_string(i)+"-"+to_string(n));
+        }
+        if(down_s > 0 && i == 0)
+        {
+            string conv_name = weightFile + ".0.downsample.0.weight.wgt";
+            out = trt_convNet(out,conv_name,"",out_c,DimsHW{down_s,down_s});
+            string bn_name = weightFile + ".0.downsample.1";
+            out = trt_bnNet(out,bn_name);
+        }
+        out = trt_eltNet(temp,out,"kSUM");
+        out = trt_activeNet(out,"relu");
+        temp = out;
+        debug_print(temp,layerName+to_string(i));
+    }
+    Layers[layerName] = temp;
+    //debug_print(Layers[layerName],layerName +" dims : ");
+    string outputName = layer["outputName"].asString();
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
+
+}
+void trt::hrnet_res(Json::Value layer)
+{
+    string layerName = layer["layerName"].asString();
+    string inputName = layer["inputName"].asString();
+    string weightFile = layer["weightFile"].asString();
+    ITensor* temp = Layers[inputName];
+    ITensor* input = Layers[inputName];
+    weightFile = param.weightPath + weightFile;
+    int deep = layer["deep"].asInt();
+    int output_c = Layers[inputName]->getDimensions().d[0];
+    for(int i = 0; i < deep; i++)
+    {
+        for(int n = 1; n < 3; n++)
+        {
+            string conv_name = weightFile + "." +to_string(i) + ".conv"+to_string(n)+".weight.wgt";
+            temp = trt_convNet(temp,conv_name,"",output_c,DimsHW{3,3},DimsHW{1,1},DimsHW{1,1});
+            string bn_name = weightFile + "." +to_string(i)+ ".bn"+ to_string(n);
+            temp = trt_bnNet(temp,bn_name);
+            if(n < 2)
+            {
+                temp = trt_activeNet(temp,"relu");
+            }
+            debug_print(temp,layerName+":"+to_string(i)+"-"+to_string(n));
+        }
+        input = trt_eltNet(input,temp,"kSUM");
+        input = trt_activeNet(input,"relu");
+        temp = input;
+        debug_print(temp,layerName+":"+to_string(i));
+    }
+    Layers[layerName] = temp;
+    debug_print(Layers[layerName],layerName +" dims : ");
+    string outputName = layer["outputName"].asString();
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
+}
+void trt::hrnet_up(Json::Value layer)
+{
+    string layerName = layer["layerName"].asString();
+    Json::Value inputs = layer["inputName"];
+    string weightFile = layer["weightFile"].asString();
+    weightFile = param.weightPath + weightFile;
+    ITensor* input0 = Layers[inputs[0].asString()];
+    ITensor* input1 = Layers[inputs[1].asString()];
+    Dims dim0 = input0->getDimensions();
+    Dims dim1 = input1->getDimensions();
+    int kernel = layer["kernel"].asInt();
+    int stride = layer["stride"].asInt();
+    if(dim0.nbDims != 3 || dim1.nbDims != 3)
+    {
+        cout<< "inputs dims must 3!"<<endl;
+        return;
+    }
+    if(dim0.d[0] / dim1.d[0] >= 2 && dim1.d[1] / dim0.d[1] >= 2)
+    {
+
+        string conv_name = weightFile + ".0.weight.wgt";
+        input0 = trt_convNet(input0,conv_name,"",dim1.d[0],DimsHW{kernel,kernel},DimsHW{stride,stride},DimsHW{kernel/2,kernel/2});
+        string bn_name = weightFile + ".1";
+        input0 = trt_bnNet(input0,bn_name);
+        auto up = m_Network->addResize(*input0);
+        up->setResizeMode(ResizeMode::kLINEAR);
+        up->setAlignCorners(true);
+        up->setOutputDimensions(dim1);
+        input0 = up->getOutput(0);
+    }
+    else{
+
+        string conv_name = weightFile + ".0.weight.wgt";
+        input0 = trt_convNet(input0,conv_name,"",dim1.d[0],DimsHW{kernel,kernel},DimsHW{stride,stride},DimsHW{kernel/2,kernel/2});
+        string bn_name = weightFile + ".1";
+        input0 = trt_bnNet(input0,bn_name);
+    }
+    ITensor* out = trt_eltNet(input0,input1,"kSUM");
+    string active_type = layer["active_type"].asString();
+    if(active_type.size() > 0)
+        out = trt_activeNet(out,active_type);
+    Layers[layerName] = out;
+    debug_print(Layers[layerName],layerName +" dims : ");
+    string outputName = layer["outputName"].asString();
+    if (outputName.size() > 0)
+    {
+        Layers[layerName]->setName(outputName.c_str());
+        m_Network->markOutput(*Layers[layerName]);
+    }
 }
