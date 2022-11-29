@@ -29,8 +29,8 @@ tensorrtCV
 ```
 
 * `src` 为tensort项目的主代码目录。其中包含`plugin`目录存放啊各种plugin
-* example目录中为不同网络的demo代码
-* model目录中为各种网络的json文件。
+* `example`目录中为不同网络的demo代码
+* `model`目录中为各种网络的json文件。
 
 ## 编译运行
 
